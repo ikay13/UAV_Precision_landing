@@ -1,0 +1,37 @@
+import cv2 as cv
+import find_hough_circles as hough_circles
+
+def test_find_hough_circles():
+    # Open the camera
+    cap = cv.VideoCapture(0)
+
+    while True:
+        # Read frame from the camera
+        ret, frame = cap.read()
+
+        frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        img = cv.medianBlur(frame,5)
+
+        # Apply the find_hough_circles.py script to the frame
+        # Replace the following line with the actual code from find_hough_circles.py
+        circles = hough_circles.find_hough_circles(img, 10, 200, 1, 100, 0.4, 100, 200)
+
+        # Draw the detected circles on the frame
+        if circles is not None:
+            for circle in circles:
+                x, y, r = circle
+                cv.circle(frame, (x, y), r, (0, 255, 0), 2)
+
+        # Display the frame
+        cv.imshow("Camera Feed", frame)
+
+        # Exit the loop if 'q' is pressed
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release the camera and close all windows
+    cap.release()
+    cv.destroyAllWindows()
+
+# Call the test_find_hough_circles function
+test_find_hough_circles()
