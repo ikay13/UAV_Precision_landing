@@ -1,0 +1,151 @@
+<mxfile host="Electron" modified="2024-02-21T16:08:56.805Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="Uqd4fATXgCKqFFvBt2Fk" version="23.1.5" type="device">
+  <diagram name="Page-1" id="as-CAOKScHzvpnxh4d1b">
+    <mxGraphModel dx="1434" dy="870" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-1" target="PP_E18y7MaqMtR6RPuh_-28" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-1" value="Determine estimated positions by hand (2x) and send to copter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="365" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" target="PP_E18y7MaqMtR6RPuh_-3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="640" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-3" target="PP_E18y7MaqMtR6RPuh_-5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-3" value="Look for square matching constrains" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="365" y="670" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-12" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-5" target="PP_E18y7MaqMtR6RPuh_-11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="PP_E18y7MaqMtR6RPuh_-5" target="PP_E18y7MaqMtR6RPuh_-30" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-40" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="PP_E18y7MaqMtR6RPuh_-31" vertex="1" connectable="0">
+          <mxGeometry x="-0.6519" y="-3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-5" value="Found square?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="385" y="760" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-11" target="PP_E18y7MaqMtR6RPuh_-13" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-11" value="Fly over target and descend to 5m" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="880" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-13" target="PP_E18y7MaqMtR6RPuh_-15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-13" value="Check for concentric circles" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="970" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-15" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-18" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="PP_E18y7MaqMtR6RPuh_-17" vertex="1" connectable="0">
+          <mxGeometry x="-0.783" y="-5" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-15" target="PP_E18y7MaqMtR6RPuh_-19" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-21" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="PP_E18y7MaqMtR6RPuh_-20" vertex="1" connectable="0">
+          <mxGeometry x="-0.2889" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-15" value="Found concentric circles?" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="385" y="1060" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-19" target="PP_E18y7MaqMtR6RPuh_-22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-19" value="Descent to Xm using concentric circles" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1180" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-22" target="PP_E18y7MaqMtR6RPuh_-24" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-22" value="Switch to inner circle for descending until Ym" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1270" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-24" value="Look for certain color of tin and use center of area to land" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-26" target="PP_E18y7MaqMtR6RPuh_-29" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-26" value="Arm the copter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="365" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-27" value="Fly to current waypoint at 10m" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="365" y="580" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-28" target="PP_E18y7MaqMtR6RPuh_-26" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-28" value="Create set of waypoints to search at" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="310" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-29" target="PP_E18y7MaqMtR6RPuh_-27" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-29" value="Set current waypoint to first" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="PP_E18y7MaqMtR6RPuh_-30" target="PP_E18y7MaqMtR6RPuh_-27" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-30" value="Advance current waypoint by one" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="510" y="670" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-38" target="PP_E18y7MaqMtR6RPuh_-3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="PP_E18y7MaqMtR6RPuh_-38" target="PP_E18y7MaqMtR6RPuh_-13" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="700" />
+              <mxPoint x="310" y="1000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-38" value="&lt;div&gt;Altitude from FC&lt;br&gt;&lt;/div&gt;&lt;div&gt;Image from RPi camera &lt;br&gt;&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="180" y="670" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-44" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="310" y="910" as="sourcePoint" />
+            <mxPoint x="365" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-46" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PP_E18y7MaqMtR6RPuh_-45" target="PP_E18y7MaqMtR6RPuh_-19" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="PP_E18y7MaqMtR6RPuh_-45" target="PP_E18y7MaqMtR6RPuh_-22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PP_E18y7MaqMtR6RPuh_-45" value="&lt;div&gt;Estimate height&amp;nbsp;&lt;/div&gt;&lt;div&gt;using circles&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
+          <mxGeometry x="180" y="1180" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

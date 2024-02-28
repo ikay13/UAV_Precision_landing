@@ -1,0 +1,91 @@
+<mxfile host="Electron" modified="2024-02-27T15:22:12.838Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="k33R0gC2bnjIfYwMX0L_" version="23.1.5" type="device">
+  <diagram name="Page-1" id="g5MLLPP2zOzyP6G0n9aK">
+    <mxGraphModel dx="1364" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-1" target="UH5tSQ5IkfHPYWIzCg0k-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-1" value="Detect Colored Tins" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="60" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-2" target="UH5tSQ5IkfHPYWIzCg0k-4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-2" value="Read, resize and blur" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-4" target="UH5tSQ5IkfHPYWIzCg0k-6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-4" value="Mask red color" style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="365" y="260" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-6" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="405" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-10" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="UH5tSQ5IkfHPYWIzCg0k-9" vertex="1" connectable="0">
+          <mxGeometry x="-0.3333" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-6" target="f2Ir-QtyHdZG_n7zoX0C-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-24" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="UH5tSQ5IkfHPYWIzCg0k-12" vertex="1" connectable="0">
+          <mxGeometry x="-0.72" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-6" value="Red contour &lt;br&gt;area &amp;gt; &lt;br&gt;threshold?" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="370" y="350" width="110" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-8" value="Not pickup landing pad" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="555" y="375" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-11" target="UH5tSQ5IkfHPYWIzCg0k-13" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-11" value="Hough circle transform to find tins" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="590" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-13" target="UH5tSQ5IkfHPYWIzCg0k-15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-13" value="Select contours of matching size" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="680" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-15" target="UH5tSQ5IkfHPYWIzCg0k-17" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-15" value="Substract red" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-17" target="UH5tSQ5IkfHPYWIzCg0k-19" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-17" value="Calculate HSV for blue and green" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="860" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="UH5tSQ5IkfHPYWIzCg0k-19" target="UH5tSQ5IkfHPYWIzCg0k-22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-19" value="Calculate best match using differences of both colors to determined value" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="950" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UH5tSQ5IkfHPYWIzCg0k-22" value="Return coordinates of colors" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f2Ir-QtyHdZG_n7zoX0C-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f2Ir-QtyHdZG_n7zoX0C-1" target="UH5tSQ5IkfHPYWIzCg0k-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2Ir-QtyHdZG_n7zoX0C-1" value="Get diameter and center of red tin" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="490" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
