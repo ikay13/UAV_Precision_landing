@@ -1,8 +1,9 @@
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
-
+from time import perf_counter
 def thresholding(img):
+    """Threshold the image using Otsu's method and apply dilation and erosion to remove noise and close gaps in the landing pad"""
     #img = cv.imread(path_to_image, cv.IMREAD_GRAYSCALE) #read as grayscale
     assert img is not None, "file could not be read, check with os.path.exists()"
 
@@ -168,6 +169,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY):
 
 
 def findContours(threshold_img, grayscale_img, altitude):
+    """Find contours in the thresholded image and filter using checkIfSquare function"""
     # Find contours and filter using threshold area
     cnts = cv.findContours(threshold_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
@@ -192,6 +194,7 @@ def findContours(threshold_img, grayscale_img, altitude):
     return approx #return the contour of the square or none if no square is found
 
 def calculate_error_image (sqare_contour, img_width, img_height): #return error relative to the center of the image
+    """Calculate the error in the x and y direction of the center of the square relative to the center of the image"""
     if sqare_contour is None:
         return None
     
@@ -208,6 +211,7 @@ def calculate_error_image (sqare_contour, img_width, img_height): #return error 
 ###################################
 
 def detect_square_main(frame, altitude):
+    """Main function to detect a square in the frame, return the error in the x and y direction if a square is found, else return None"""
     grayscale_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     threshold_img = thresholding(grayscale_img)
     square_contour = findContours(threshold_img, grayscale_img,altitude)
@@ -216,6 +220,68 @@ def detect_square_main(frame, altitude):
         return error
     else:
         return None
+
+
+def calculate_target_error(errors_xy):
+    """Calculate the mean error in the x and y direction from a list of errors"""
+    distances = np.linalg.norm(errors_xy, axis=1)
+    errors_xy= np.mean(errors_xy, axis=0)
+    standard_deviation = np.std(distances)
+    #print("Standard deviation: ", standard_deviation)
+    #implement logic to check if deviation is too high for one platform
+    return errors_xy
+
+def check_for_time(frame, altitude,duration,ratio_detected):
+    """check if a square is detected in the frame for 3 seconds, if it is, return coordinates, if not, return None"""
+    #Use function variables to store values between function calls (only executed once)
+    if check_for_time.start_time is None:
+        check_for_time.start_time = perf_counter()
+        check_for_time.errors_xy = []
+        check_for_time.not_detected_cnt = 0
+    
+    err_square = detect_square_main(frame, altitude)
+    if err_square is not None: #If a square is detected, add the error to the list
+        check_for_time.errors_xy.append(err_square)
+    else:
+        check_for_time.not_detected_cnt += 1
+
+    if perf_counter() - check_for_time.start_time > duration: #If 3 seconds have passed, check if a square was detected in more than half of the frames
+        if len(check_for_time.errors_xy )/(check_for_time.not_detected_cnt+1e-5) > ratio_detected: #If more than half of the frames have a square, get target error
+            calculated_target_err =  calculate_target_error(check_for_time.errors_xy)
+            return calculated_target_err
+        else:
+            return False
+    else:
+        return None
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # altitude = 10
 # cam = cv.VideoCapture("code_project/images/cut.mp4")
