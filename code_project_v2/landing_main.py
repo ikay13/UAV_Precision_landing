@@ -1,9 +1,37 @@
 from square_detect import detect_square_main, check_for_time
 from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate
+from hogh_circles import concentric_circles
 
 import cv2 as cv
 import numpy as np
 from enum import Enum
+
+from pynput import keyboard
+
+def on_press(key):
+    if key == keyboard.Key.tab:
+        global skip###Parameters
+# cannyEdgeMaxThr = 40 #Max Thr for canny edge detection
+# circleDetectThr = 35 #Threshold for circle detection
+# size = 30           #Size of the circles (to be calculated)
+# factor = 3.2          #Factor big circle diameter / small circle diameter
+# rangePerc = 1.5     #This is the range the circles are expected to be in
+        skip = True
+    #try:
+        #print('alphanumeric key {0} pressed'.format(key.char))
+    #except AttributeError:
+        #print('special key {0} pressed'.format(key))
+
+def on_release(key):
+    if key == keyboard.Key.esc:
+        # Stop listener
+        return False
+
+# ...or, in a non-blocking fashion:
+listener = keyboard.Listener(
+    on_press=on_press,
+    on_release=on_release)
+listener.start()
 
 class state(Enum):
     initial = 0
@@ -33,8 +61,12 @@ class uav:
         self.latitude = 29.183972
         self.longitude = -81.043251
         self.state = state.initial
+        self.cam_hfov = 65
+        self.cam_vfov = 52
 
 def main():
+    global skip
+    skip = False
     video = cv.VideoCapture("images/cut.mp4")
 
     #only to not play the entire video
@@ -45,13 +77,18 @@ def main():
 
     err_estimation = error_estimation_image()  # Create an instance of the error_estimation class
     uav_inst = uav()  # Create an instance of the uav_angles class
+    uav_inst.state = state.descend_square
     check_for_time.start_time = None
     reached_waypoint = "n"
     reached_target = "n"
     while video.isOpened():
         ret, frame = video.read()
         if ret:
-            frame = cv.resize(frame, (640, 480))
+            
+            if uav_inst.state == state.descend_concentric:
+                frame = cv.resize(frame, (850, 478))
+            else:
+                frame = cv.resize(frame, (640, 480))
             match uav_inst.state:
                 case state.initial:
                     uav_inst.state = state.fly_to_waypoint
@@ -116,10 +153,6 @@ def main():
                         uav_inst.state = state.return_to_launch
                         reached_target = "over"
                         print("Returning to launch")
-                        ############################
-                        ####Fly to next waypoint####
-                        ############################
-                        break
                     else:
                         #Set mode to using square as reference
                         uav_inst.state = state.descend_square
@@ -127,15 +160,21 @@ def main():
                         print("Target detected: " + str(square_detected_err) + "now descending")
 
                 case state.descend_square:
-                    error_xy = detect_square_main(frame, 10)
+                    error_xy, area_ratio = detect_square_main(frame, 10)
                     if error_xy is not None:
                         err_estimation.x = error_xy[0]
                         err_estimation.y = error_xy[1]
                         error_ground_xy = transform_to_ground_xy([err_estimation.x, err_estimation.y], [uav_inst.angle_x, uav_inst.angle_y], uav_inst.altitude)
-                        print("Error in ground plane: " + str(error_ground_xy))
-                    pass
+                        print("Area ratio " + str(area_ratio))
+                    if skip: #should instead be a check whether area ratio is bigger than threshold
+                        uav_inst.state = state.descend_concentric
+                        skip = False
+                        video = cv.VideoCapture("images/concentric_to_single_rot.mp4")
+                    
 
                 case state.descend_concentric:
+                    concentric_circles(frame=frame, altitude=.5, cam_hfov=uav_inst.cam_hfov) 
+                    print("Descend concentric")
                     pass
                 case state.descend_inner_circle:
                     pass

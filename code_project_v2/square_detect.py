@@ -193,16 +193,15 @@ def findContours(threshold_img, grayscale_img, altitude):
     cv.waitKey(1)
     return approx #return the contour of the square or none if no square is found
 
-def calculate_error_image (sqare_contour, img_width, img_height): #return error relative to the center of the image
+def calculate_error_image (square_contour, img_width, img_height): #return error relative to the center of the image
     """Calculate the error in the x and y direction of the center of the square relative to the center of the image"""
-    if sqare_contour is None:
+    if square_contour is None:
         return None
     
-    M = cv.moments(sqare_contour)
+    M = cv.moments(square_contour)
     cX = int(M["m10"] / (M["m00"]+1e-5))  # x-coordinate of the center of contour
     cY = int(M["m01"] / (M["m00"]+1e-5))  # y-coordinate of the center of contour
     error_xy = ((cX / img_width-0.5)*2, (cY / img_height-0.5)*-1.5)  # calculate relative error in x and y direction
-
     return error_xy
     
 
@@ -215,11 +214,13 @@ def detect_square_main(frame, altitude):
     grayscale_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     threshold_img = thresholding(grayscale_img)
     square_contour = findContours(threshold_img, grayscale_img,altitude)
-    if square_contour is not None:
+    if square_contour is not None: #Implement check to see if only one square is detected???????????????
+        area_ratio = cv.contourArea(square_contour)/ (grayscale_img.shape[1] * grayscale_img.shape[0]) #ratio of area of contour to area of image
+        
         error = calculate_error_image(square_contour, grayscale_img.shape[1], grayscale_img.shape[0])
-        return error
+        return error, area_ratio
     else:
-        return None
+        return None, None
 
 
 def calculate_target_error(errors_xy):
@@ -239,7 +240,7 @@ def check_for_time(frame, altitude,duration,ratio_detected):
         check_for_time.errors_xy = []
         check_for_time.not_detected_cnt = 0
     
-    err_square = detect_square_main(frame, altitude)
+    err_square, _ = detect_square_main(frame, altitude)
     if err_square is not None: #If a square is detected, add the error to the list
         check_for_time.errors_xy.append(err_square)
     else:
