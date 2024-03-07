@@ -1,0 +1,49 @@
+<mxfile host="Electron" modified="2024-03-06T18:22:07.223Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="LzBGzO15bMtt_Hpt_hkd" version="23.1.5" type="device">
+  <diagram name="Page-1" id="zABlvm26GtV6vpg6BU73">
+    <mxGraphModel dx="1364" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-1" target="UzUKPxdUSzKlRO_8iOpC-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-1" value="Concentric circles" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-2" target="UzUKPxdUSzKlRO_8iOpC-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-2" value="Calculate expected radii" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="260" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-3" target="UzUKPxdUSzKlRO_8iOpC-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-3" value="Parameters:&lt;br&gt;Thresholds,&lt;br&gt;big_circle/small_circle&lt;br&gt;tolerance" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="260" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-6" target="UzUKPxdUSzKlRO_8iOpC-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-6" value="Find big and small circles within radii" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-8" target="UzUKPxdUSzKlRO_8iOpC-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-8" value="Calculate altitude using radius of bigger circle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="620" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="UzUKPxdUSzKlRO_8iOpC-10" target="UzUKPxdUSzKlRO_8iOpC-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-10" value="Check if pair on concentric circles exists" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="460" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="UzUKPxdUSzKlRO_8iOpC-13" value="Return altitude" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="720" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

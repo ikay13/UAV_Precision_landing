@@ -1,6 +1,6 @@
 from square_detect import detect_square_main, check_for_time
 from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate
-from hogh_circles import concentric_circles
+from hogh_circles import concentric_circles, small_circle
 
 import cv2 as cv
 import numpy as np
@@ -10,17 +10,8 @@ from pynput import keyboard
 
 def on_press(key):
     if key == keyboard.Key.tab:
-        global skip###Parameters
-# cannyEdgeMaxThr = 40 #Max Thr for canny edge detection
-# circleDetectThr = 35 #Threshold for circle detection
-# size = 30           #Size of the circles (to be calculated)
-# factor = 3.2          #Factor big circle diameter / small circle diameter
-# rangePerc = 1.5     #This is the range the circles are expected to be in
+        global skip
         skip = True
-    #try:
-        #print('alphanumeric key {0} pressed'.format(key.char))
-    #except AttributeError:
-        #print('special key {0} pressed'.format(key))
 
 def on_release(key):
     if key == keyboard.Key.esc:
@@ -64,6 +55,14 @@ class uav:
         self.cam_hfov = 65
         self.cam_vfov = 52
 
+class circle_parameters:
+    def __init__(self):
+        self.radius_big = 0.72
+        self.radius_small = 0.24
+        self.canny_max_threshold = 55 #param1 of hough circle transform
+        self.hough_circle_detect_thr = 45 #param2 of hough circle transform
+        self.factor = self.radius_big/self.radius_small #How much bigger the big circle is compared to the small circle (diameter)
+
 def main():
     global skip
     skip = False
@@ -77,7 +76,12 @@ def main():
 
     err_estimation = error_estimation_image()  # Create an instance of the error_estimation class
     uav_inst = uav()  # Create an instance of the uav_angles class
+    circle_parameters_obj = circle_parameters()
+
     uav_inst.state = state.descend_square
+    uav_inst.altitude = 2
+
+
     check_for_time.start_time = None
     reached_waypoint = "n"
     reached_target = "n"
@@ -170,13 +174,23 @@ def main():
                         uav_inst.state = state.descend_concentric
                         skip = False
                         video = cv.VideoCapture("images/concentric_to_single_rot.mp4")
-                    
+                        fps = video.get(cv.CAP_PROP_FPS)
+                        start_time_video = 5
+                        start_frame_num = int(start_time_video * fps)
+                        video.set(cv.CAP_PROP_POS_FRAMES, start_frame_num)
+                                        
 
                 case state.descend_concentric:
-                    concentric_circles(frame=frame, altitude=.5, cam_hfov=uav_inst.cam_hfov) 
-                    print("Descend concentric")
+                    alt = concentric_circles(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=circle_parameters_obj) 
+                    if alt is not None:
+                        uav_inst.altitude = alt
+                    if uav_inst.altitude < 1:
+                        uav_inst.state = state.descend_inner_circle
+                    #print("Descend concentric")
                     pass
                 case state.descend_inner_circle:
+                    small_circle(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=circle_parameters_obj)
+                    #print("Descend inner circle")
                     pass
                 case state.land_tins:
                     pass

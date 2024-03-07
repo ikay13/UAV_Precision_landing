@@ -1,0 +1,39 @@
+<mxfile host="Electron" modified="2024-03-06T18:44:46.355Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="GiFLPYy-TTCB6mRA7Mkm" version="23.1.5" type="device">
+  <diagram name="Page-1" id="HWWqRPuB5BrNA9UjMvnh">
+    <mxGraphModel dx="1364" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="aYUdWCCtlgh8j3UBiI9c-1" target="aYUdWCCtlgh8j3UBiI9c-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-1" value="Descend on small circle" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="aYUdWCCtlgh8j3UBiI9c-2" target="aYUdWCCtlgh8j3UBiI9c-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-2" value="Calculate bounding radii" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="aYUdWCCtlgh8j3UBiI9c-3" target="aYUdWCCtlgh8j3UBiI9c-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-3" value="Search for circles using criteria" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="aYUdWCCtlgh8j3UBiI9c-5" target="aYUdWCCtlgh8j3UBiI9c-11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="565" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-5" value="Exactly &lt;br&gt;one circle is &lt;br&gt;found?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="90" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aYUdWCCtlgh8j3UBiI9c-11" value="Return error in image plane" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="500" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
