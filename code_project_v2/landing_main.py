@@ -1,6 +1,7 @@
 from square_detect import detect_square_main, check_for_time
 from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate
 from hogh_circles import concentric_circles, small_circle
+from colour_tracking import find_red_tin
 
 import cv2 as cv
 import numpy as np
@@ -33,8 +34,9 @@ class state(Enum):
     descend_square = 5
     descend_concentric = 6
     descend_inner_circle = 7
-    land_tins = 8
-    return_to_launch = 9
+    detect_tins = 8
+    land_tins = 9
+    return_to_launch = 10
 
 class error_estimation_image:
     def __init__(self):
@@ -47,7 +49,7 @@ class uav:
     def __init__(self):
         self.angle_x = 0
         self.angle_y = 0
-        self.altitude = 10
+        self.altitude = 7
         self.heading = 0
         self.latitude = 29.183972
         self.longitude = -81.043251
@@ -55,13 +57,15 @@ class uav:
         self.cam_hfov = 65
         self.cam_vfov = 52
 
-class circle_parameters:
+class target_parameters:
     def __init__(self):
-        self.radius_big = 0.72
-        self.radius_small = 0.24
+        self.diameter_big = 0.72
+        self.diameter_small = 0.24
         self.canny_max_threshold = 55 #param1 of hough circle transform
         self.hough_circle_detect_thr = 45 #param2 of hough circle transform
-        self.factor = self.radius_big/self.radius_small #How much bigger the big circle is compared to the small circle (diameter)
+        self.factor = self.diameter_big/self.diameter_small #How much bigger the big circle is compared to the small circle (diameter)
+        self.tin_diameter = 0.084 #Diameter of the tins in meters
+        self.size_square = 2 #Size of the square in meters
 
 def main():
     global skip
@@ -76,10 +80,9 @@ def main():
 
     err_estimation = error_estimation_image()  # Create an instance of the error_estimation class
     uav_inst = uav()  # Create an instance of the uav_angles class
-    circle_parameters_obj = circle_parameters()
+    target_parameters_obj = target_parameters()
 
     uav_inst.state = state.descend_square
-    uav_inst.altitude = 2
 
 
     check_for_time.start_time = None
@@ -89,8 +92,9 @@ def main():
         ret, frame = video.read()
         if ret:
             
-            if uav_inst.state == state.descend_concentric:
+            if uav_inst.state == state.descend_concentric or uav_inst.state == state.descend_inner_circle or uav_inst.state == state.land_tins:
                 frame = cv.resize(frame, (850, 478))
+                #frame = cv.resize(frame, (9*50, 16*50))
             else:
                 frame = cv.resize(frame, (640, 480))
             match uav_inst.state:
@@ -108,9 +112,11 @@ def main():
                     if reached_waypoint == "y":
                         uav_inst.state = state.detect_square
 
-                case state.detect_square:                    
+                case state.detect_square:   
+                    print("Detecting square")                 
                     #Check for 3s if square is detected more than 50% of the time
-                    square_detected_err = check_for_time(frame=frame, altitude=uav_inst.altitude,duration=3,ratio_detected=0.5)
+                    square_detected_err = check_for_time(frame=frame, altitude=uav_inst.altitude,duration=3,
+                                                         ratio_detected=0.5, size_square=target_parameters_obj.size_square, cam_hfov=uav_inst.cam_hfov)
                     if square_detected_err is None:
                         pass #time not over yet
                     elif square_detected_err is False:
@@ -164,7 +170,7 @@ def main():
                         print("Target detected: " + str(square_detected_err) + "now descending")
 
                 case state.descend_square:
-                    error_xy, area_ratio = detect_square_main(frame, 10)
+                    error_xy, area_ratio = detect_square_main(frame, uav_inst.altitude, target_parameters_obj.size_square, uav_inst.cam_hfov)
                     if error_xy is not None:
                         err_estimation.x = error_xy[0]
                         err_estimation.y = error_xy[1]
@@ -172,27 +178,47 @@ def main():
                         print("Area ratio " + str(area_ratio))
                     if skip: #should instead be a check whether area ratio is bigger than threshold
                         uav_inst.state = state.descend_concentric
+                        ############################################
+                        uav_inst.altitude = 2 ###################################to be removed###################''!!!!!!!!
+                        #############################################
                         skip = False
                         video = cv.VideoCapture("images/concentric_to_single_rot.mp4")
                         fps = video.get(cv.CAP_PROP_FPS)
-                        start_time_video = 5
+                        start_time_video = 0
                         start_frame_num = int(start_time_video * fps)
                         video.set(cv.CAP_PROP_POS_FRAMES, start_frame_num)
                                         
 
                 case state.descend_concentric:
-                    alt = concentric_circles(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=circle_parameters_obj) 
+                    #####/3 should be removed later
+                    alt, error_xy = concentric_circles(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=target_parameters_obj) 
                     if alt is not None:
                         uav_inst.altitude = alt
-                    if uav_inst.altitude < 1:
+                        uav_inst.error_xy = error_xy
+                    if uav_inst.altitude < 1.5:
                         uav_inst.state = state.descend_inner_circle
-                    #print("Descend concentric")
-                    pass
+                        print("Switching to inner circle")
+
                 case state.descend_inner_circle:
-                    small_circle(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=circle_parameters_obj)
-                    #print("Descend inner circle")
+                    #####/3 should be removed later
+                    alt,error_xy = small_circle(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=target_parameters_obj)
+                    if alt is not None:
+                        uav_inst.altitude = alt
+                        uav_inst.error_xy = error_xy
+                    if uav_inst.altitude < 0.8:
+                        uav_inst.state = state.land_tins
+                        print("Switching to detectig tins")
+                        uav_inst.state = state.detect_tins
+                        video = cv.VideoCapture("images/tin_white_rot.mp4")
+                        fps = video.get(cv.CAP_PROP_FPS)
+                        start_time_video = 0
+                        start_frame_num = int(start_time_video * fps)
+                        video.set(cv.CAP_PROP_POS_FRAMES, start_frame_num)
+                case state.detect_tins:
                     pass
+
                 case state.land_tins:
+
                     pass
                 case state.return_to_launch:
                     pass

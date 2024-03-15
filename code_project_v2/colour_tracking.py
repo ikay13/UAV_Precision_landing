@@ -6,7 +6,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 
-cam = cv.VideoCapture("code_project/images/tins_1.mp4")
+cam = cv.VideoCapture("images/tins_1.mp4")
 
 def find_red_tin(hsvFrame, minsize):
 	# Set range for red color and 
@@ -19,7 +19,7 @@ def find_red_tin(hsvFrame, minsize):
 	# Morphological Transform, Dilation 
 	# for each color and bitwise_and operator 
 	# between imageFrame and mask determines 
-	# to detect only that particular color 
+	# to detect only that particular color
 	kernel = np.ones((5, 5), "uint8") 
 	
 	#####Search for the red tin#####
@@ -38,17 +38,29 @@ def find_red_tin(hsvFrame, minsize):
 				center = (int(temp_circle[0][0]), int(temp_circle[0][1]))
 				radius = int(temp_circle[1])
 				min_circle_red = [center, radius]
-				cv.circle(imageFrame, center, 5, (0, 0, 255), -1)
-				cv.circle(imageFrame, center, radius, (0, 0, 255), 2)
+				# cv.circle(imageFrame, center, 5, (0, 0, 255), -1)
+				# cv.circle(imageFrame, center, radius, (0, 0, 255), 2)
 				red_tin_exists = True
 
 				cv.drawContours(imageFrame, [cnt], -1, (0, 0, 255), 2)
 	#Return the minimum enclosing circle of the red tin and a bool indicating if the red tin exists
 	return min_circle_red, red_tin_exists 
 
+
+
+
+
+
+
+
+
+
+
+
+
 red_found_cnt = 0
 red_notfound_cnt = 0
-while(True):
+while(False):
 	
 	ret,frame = cam.read()
 	if ret:

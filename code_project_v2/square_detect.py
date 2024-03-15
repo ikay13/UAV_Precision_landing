@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from time import perf_counter
+from coordinate_transform import calculate_size_in_px
 def thresholding(img):
     """Threshold the image using Otsu's method and apply dilation and erosion to remove noise and close gaps in the landing pad"""
     #img = cv.imread(path_to_image, cv.IMREAD_GRAYSCALE) #read as grayscale
@@ -75,19 +76,20 @@ def thresholding(img):
     # plt.show()
  
 
-def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY):
+def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size_square, image_width_px, cam_hfov):
     """Check if the contour is a square by checking the angles and line lengths
     if any check fails, return False and continue to the next contour"""
     if len(approx_poly) != 4:
         return False # Not 4 corners
     
-    factor = 300
-    delta = 0.5
-    min_area = altitude * factor * (1-delta)
-    max_area = altitude * factor * (1+delta)
+    expected_size = calculate_size_in_px(altitude=altitude, size_object_m=size_square, cam_hfov=cam_hfov, image_width=image_width_px)
+    expexted_area = expected_size**2
+    tolerance = 0.5
+    min_area = expexted_area * (1-tolerance)
+    max_area = expexted_area * (1+tolerance)
 
     if not (min_area < cv.contourArea(cnt) < max_area):
-        #print("min_area: {}, max_area: {}, contourArea: {}".format(min_area, max_area, cv.contourArea(cnt)))
+        #print("expte_area: ", expexted_area, "contourArea: ", cv.contourArea(cnt))
         return False # Not the right size
     
 
@@ -168,7 +170,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY):
     return True # All checks passed, the object is a square
 
 
-def findContours(threshold_img, grayscale_img, altitude):
+def findContours(threshold_img, grayscale_img, altitude, size_square, cam_hfov):
     """Find contours in the thresholded image and filter using checkIfSquare function"""
     # Find contours and filter using threshold area
     cnts = cv.findContours(threshold_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -180,7 +182,8 @@ def findContours(threshold_img, grayscale_img, altitude):
         # Get the center of the image
         image_centerX = grayscale_img.shape[1] // 2
         image_centerY = grayscale_img.shape[0] // 2
-        bounding_box = checkIfSquare(c, approx_temp, altitude, image_centerX, image_centerY)
+        image_width_px = grayscale_img.shape[1]
+        bounding_box = checkIfSquare(c, approx_temp, altitude, image_centerX, image_centerY, size_square, image_width_px, cam_hfov)
         if bounding_box is not False:
             cv.drawContours(grayscale_img, [approx_temp], -1, (0, 255, 0), 2)    
             approx = approx_temp      
@@ -209,11 +212,11 @@ def calculate_error_image (square_contour, img_width, img_height): #return error
 #######Start of main program#######
 ###################################
 
-def detect_square_main(frame, altitude):
+def detect_square_main(frame, altitude, size_square, cam_hfov):
     """Main function to detect a square in the frame, return the error in the x and y direction if a square is found, else return None"""
     grayscale_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     threshold_img = thresholding(grayscale_img)
-    square_contour = findContours(threshold_img, grayscale_img,altitude)
+    square_contour = findContours(threshold_img, grayscale_img,altitude, size_square, cam_hfov)
     if square_contour is not None: #Implement check to see if only one square is detected???????????????
         area_ratio = cv.contourArea(square_contour)/ (grayscale_img.shape[1] * grayscale_img.shape[0]) #ratio of area of contour to area of image
         
@@ -232,7 +235,7 @@ def calculate_target_error(errors_xy):
     #implement logic to check if deviation is too high for one platform
     return errors_xy
 
-def check_for_time(frame, altitude,duration,ratio_detected):
+def check_for_time(frame, altitude,duration,ratio_detected, size_square, cam_hfov):
     """check if a square is detected in the frame for 3 seconds, if it is, return coordinates, if not, return None"""
     #Use function variables to store values between function calls (only executed once)
     if check_for_time.start_time is None:
@@ -240,7 +243,7 @@ def check_for_time(frame, altitude,duration,ratio_detected):
         check_for_time.errors_xy = []
         check_for_time.not_detected_cnt = 0
     
-    err_square, _ = detect_square_main(frame, altitude)
+    err_square, _ = detect_square_main(frame, altitude, size_square, cam_hfov)
     if err_square is not None: #If a square is detected, add the error to the list
         check_for_time.errors_xy.append(err_square)
     else:

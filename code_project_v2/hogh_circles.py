@@ -14,9 +14,14 @@ from math import atan2, tan
 #cap = cv.VideoCapture(0)
 #plt.ion()
 
-def calculate_error_image(circles, img_width, img_height):
+def calculate_error_image(circles, img_width, img_height, num_of_circles):
     """Calculate the error in the x and y direction from the center of the image"""
-    center_xy = (np.mean(circles[0][0:1][0], axis=0),np.mean(circles[0][0:1][0], axis=0)) # calculate the average center of the circles
+    if num_of_circles == 2:
+        cnt_x = (circles[0][0][0] + circles[0][1][0]) / 2
+        cnt_y = (circles[0][0][1] + circles[0][1][1]) / 2
+        center_xy = (cnt_x, cnt_y)
+    else: #only one circle
+        center_xy = (circles[0][0], circles[0][1])
     error_xy = ((center_xy[0] / img_width-0.5)*2, (center_xy[1] / img_height-0.5)*-1.5)  # calculate relative error in x and y direction
     return error_xy
 
@@ -40,9 +45,9 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
     calculated_altitude = None #This is the altitude calculated from the image (As the circel dimensions are known)
 
     ###Calculate the size of the circles relative to altitude and camera hfov
-    dist_img_on_ground = atan2(cam_hfov,2)*2*altitude
+    dist_img_on_ground = tan(cam_hfov/2)*2*altitude
     rel_size = 0.72/dist_img_on_ground #This is the size of the bigger circle compared to the overall frame
-    radius_big_pixel = rel_size*frame.shape[0]/2 #This is the radius of the bigger circle in pixels
+    radius_big_pixel = rel_size*frame.shape[1]/2 #This is the radius of the bigger circle in pixels
     radius_small_pixel = radius_big_pixel/factor #This is the radius of the smaller circle in pixels
     radii_big = [int(radius_big_pixel*(1-tolerance)), int(radius_big_pixel*(1+tolerance))] #Min and max radius for the bigger circle
     radii_small = [int(radius_small_pixel*(1-tolerance)), int(radius_small_pixel*(1+tolerance))] #Min and max radius for the smaller circle
@@ -86,22 +91,24 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
                     #print("match")
                     break
         if len(circles) > 0:
-            error_xy = calculate_error_image(circles, frame.shape[0], frame.shape[1])
-            print("Center: ", error_xy)
+            error_xy = calculate_error_image(circles=circles, img_width=frame.shape[1], img_height=frame.shape[0], num_of_circles=2)
+            #print("Center: ", error_xy)
             for i in circles[0]:
                 if radii_big[0] < i[2] < radii_big[1]:
                     alt = calculate_altitude(radius_big_circle=i[2])
                     calculated_altitude = alt
-                print("Altitude: ", alt)
+                #print("Altitude: ", alt)
                 # draw the outer circle
                 cv.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
                 # draw the center of the circle
                 cv.circle(frame,(i[0],i[1]),2,(0,0,255),3)
+        else:
+            #No concentric circles found
+            return None, None
     else:
-        print("No circles found (either big or small)")
-        # print("big: ", circles_big)
-        # print("small: ", circles_small)
-        # print("radii_big: ", radii_big)
+        #No circles found (either big or small)
+        return None, None
+        
 
     ##only for visual representation
     edges = cv.Canny(blur,0.5*cannyEdgeMaxThr,cannyEdgeMaxThr)
@@ -109,7 +116,7 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
     cv.imshow('Circles and Canny', combinedImage) #Display the combined image
     cv.waitKey(1)
 
-    return calculated_altitude
+    return calculated_altitude, error_xy
 
 def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     """Detects concentric circles in the image using altitude"""
@@ -122,9 +129,9 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     calculated_altitude = None #This is the altitude calculated from the image (As the circel dimensions are known)
 
     ###Calculate the size of the small circle relative to altitude and camera hfov
-    dist_img_on_ground = atan2(cam_hfov,2)*2*altitude
+    dist_img_on_ground = tan(cam_hfov/2)*2*altitude
     rel_size = 0.72/dist_img_on_ground #This is the size of the bigger circle compared to the overall frame
-    radius_big_pixel = rel_size*frame.shape[0]/2 #This is the radius of the bigger circle in pixels
+    radius_big_pixel = rel_size*frame.shape[1]/2 #This is the radius of the bigger circle in pixels
     radius_small_pixel = radius_big_pixel/factor #This is the radius of the smaller circle in pixels
     radii_small = [int(radius_small_pixel*(1-tolerance)), int(radius_small_pixel*(1+tolerance))] #Min and max radius for the smaller circle
 
@@ -135,23 +142,32 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     circles = cv.HoughCircles(blur,cv.HOUGH_GRADIENT,1,50,
                                 param1=cannyEdgeMaxThr,param2=circleDetectThr,minRadius=radii_small[0],maxRadius=radii_small[1])
     
-    if circles is not None and len(circles[0]) == 1:
-        circles = np.int16(np.around(circles))
-        circles = circles[0][0] #remove redundant dimensions
-
-        radius_imaginary_big = circles[2]*factor
+    if circles is None:
+        return None, None
+    
+    circles = np.int16(np.around(circles))
+    circles = circles[0] #remove redundant dimensions
+    
+    if len(circles) == 1:
+        circle = circles[0]
+        radius_imaginary_big = circle[2]*factor
         alt = calculate_altitude(radius_big_circle=radius_imaginary_big)
         calculated_altitude = alt
-        print("Altitude: ", alt)
-        cv.circle(frame,(circles[0],circles[1]),circles[2],(0,255,0),2)
+        #print("Altitude: ", alt)
+
+        error_xy = calculate_error_image(circles=circles, img_width=frame.shape[1], img_height=frame.shape[0],num_of_circles=1)
+        
+        cv.circle(frame,(circle[0],circle[1]),circle[2],(0,255,0),2)
         # draw the center of the circle
-        cv.circle(frame,(circles[0],circles[1]),2,(0,0,255),3)
+        cv.circle(frame,(circle[0],circle[1]),2,(0,0,255),3)
 
     ##only for visual representation
     edges = cv.Canny(blur,0.5*cannyEdgeMaxThr,cannyEdgeMaxThr)
     combinedImage = np.concatenate((frame, edges), axis=1) #Combine canny edge detection and gray image
     cv.imshow('Circles and Canny', combinedImage) #Display the combined image
     cv.waitKey(1)
+
+    return calculated_altitude, error_xy
 
 
 
