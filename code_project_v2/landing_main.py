@@ -1,8 +1,7 @@
 from square_detect import detect_square_main, check_for_time
-from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate
+from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate, transform_ground_to_img_xy
 from hogh_circles import concentric_circles, small_circle
-from colour_tracking import find_red_tin
-
+from tin_detection import tin_detection_for_time, tins_error_bin_mode
 import cv2 as cv
 import numpy as np
 from enum import Enum
@@ -67,6 +66,14 @@ class target_parameters:
         self.tin_diameter = 0.084 #Diameter of the tins in meters
         self.size_square = 2 #Size of the square in meters
 
+
+class tin_colours:
+    def __init__(self):
+        #Change this if the colour of the tins changes (hue value from 0 to 180)
+        self.green_hue = 95
+        self.blue_hue = 105
+        self.red_hue = 170
+
 def main():
     global skip
     skip = False
@@ -81,8 +88,9 @@ def main():
     err_estimation = error_estimation_image()  # Create an instance of the error_estimation class
     uav_inst = uav()  # Create an instance of the uav_angles class
     target_parameters_obj = target_parameters()
+    tin_colours_obj = tin_colours()
 
-    uav_inst.state = state.descend_square
+    uav_inst.state = state.initial
 
 
     check_for_time.start_time = None
@@ -92,11 +100,16 @@ def main():
         ret, frame = video.read()
         if ret:
             
-            if uav_inst.state == state.descend_concentric or uav_inst.state == state.descend_inner_circle or uav_inst.state == state.land_tins:
+            if uav_inst.state == state.descend_concentric or uav_inst.state == state.descend_inner_circle:
                 frame = cv.resize(frame, (850, 478))
                 #frame = cv.resize(frame, (9*50, 16*50))
+            elif uav_inst.state == state.detect_tins:
+                frame = cv.resize(frame, (850, 478))
             else:
                 frame = cv.resize(frame, (640, 480))
+        
+            curr_err_px = [0, 0] # Error in pixels for debugging purposes
+
             match uav_inst.state:
                 case state.initial:
                     uav_inst.state = state.fly_to_waypoint
@@ -136,6 +149,7 @@ def main():
                         err_estimation.y = square_detected_err[1]
                         error_ground_xy = transform_to_ground_xy([err_estimation.x, err_estimation.y], [uav_inst.angle_x, uav_inst.angle_y], uav_inst.altitude)
                         target_lat, target_lon = calculate_new_coordinate(uav_inst.latitude, uav_inst.longitude, error_ground_xy, uav_inst.heading)
+                        curr_err_px = transform_ground_to_img_xy(error_ground_xy, uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
                     
                 case state.fly_to_target:
                     #############################################
@@ -155,7 +169,8 @@ def main():
                         
                 case state.check_for_target:
                     #check for 2s if square is detected more than 80% of the time
-                    square_detected_err = check_for_time(frame=frame, altitude=uav_inst.altitude,duration=2,ratio_detected=0.9)
+                    square_detected_err = check_for_time(frame=frame, altitude=uav_inst.altitude,duration=2,ratio_detected=0.9, 
+                                                         size_square=target_parameters_obj.size_square, cam_hfov=uav_inst.cam_hfov)
 
                     if square_detected_err is None:
                         continue #time not over yet
@@ -168,6 +183,7 @@ def main():
                         uav_inst.state = state.descend_square
                         reached_target = "over"
                         print("Target detected: " + str(square_detected_err) + "now descending")
+                        curr_err_px = transform_ground_to_img_xy(square_detected_err, uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
 
                 case state.descend_square:
                     error_xy, area_ratio = detect_square_main(frame, uav_inst.altitude, target_parameters_obj.size_square, uav_inst.cam_hfov)
@@ -176,6 +192,7 @@ def main():
                         err_estimation.y = error_xy[1]
                         error_ground_xy = transform_to_ground_xy([err_estimation.x, err_estimation.y], [uav_inst.angle_x, uav_inst.angle_y], uav_inst.altitude)
                         print("Area ratio " + str(area_ratio))
+                        curr_err_px = transform_ground_to_img_xy(error_ground_xy, uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
                     if skip: #should instead be a check whether area ratio is bigger than threshold
                         uav_inst.state = state.descend_concentric
                         ############################################
@@ -194,8 +211,11 @@ def main():
                     alt, error_xy = concentric_circles(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=target_parameters_obj) 
                     if alt is not None:
                         uav_inst.altitude = alt
-                        uav_inst.error_xy = error_xy
-                    if uav_inst.altitude < 1.5:
+                        error_ground_xy = transform_to_ground_xy(error_xy, [uav_inst.angle_x, uav_inst.angle_y], uav_inst.altitude)
+                        uav_inst.error_xy = error_ground_xy
+                        curr_err_px = transform_ground_to_img_xy(error_ground_xy, uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
+                    if uav_inst.altitude < 1.5 or skip:
+                        skip = False
                         uav_inst.state = state.descend_inner_circle
                         print("Switching to inner circle")
 
@@ -204,21 +224,43 @@ def main():
                     alt,error_xy = small_circle(frame=frame, altitude=uav_inst.altitude/3, cam_hfov=uav_inst.cam_hfov, circle_parameters_obj=target_parameters_obj)
                     if alt is not None:
                         uav_inst.altitude = alt
-                        uav_inst.error_xy = error_xy
-                    if uav_inst.altitude < 0.8:
-                        uav_inst.state = state.land_tins
+                        error_ground_xy = transform_to_ground_xy(error_xy, [uav_inst.angle_x, uav_inst.angle_y], uav_inst.altitude)
+                        uav_inst.error_xy = error_ground_xy
+                        curr_err_px = transform_ground_to_img_xy(error_ground_xy, uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
+                    if uav_inst.altitude < 0.8 or skip:
+                        skip = False
                         print("Switching to detectig tins")
+                        uav_inst.altitude = 0.15
                         uav_inst.state = state.detect_tins
+                        tin_detection_for_time.start_time = None
+
                         video = cv.VideoCapture("images/tin_white_rot.mp4")
                         fps = video.get(cv.CAP_PROP_FPS)
                         start_time_video = 0
                         start_frame_num = int(start_time_video * fps)
                         video.set(cv.CAP_PROP_POS_FRAMES, start_frame_num)
                 case state.detect_tins:
-                    pass
+                    err_ground_xy_gbr = tin_detection_for_time(frame=frame, uav_inst=uav_inst, 
+                                                            circle_parameters_obj=target_parameters_obj, tin_colours_obj=tin_colours_obj)
+                                                            
+                    if err_ground_xy_gbr is False:
+                        print("Not enough tins detected")
+                        ###change state here
+                    elif err_ground_xy_gbr is not None:
+                        #print("Errors: ", err_ground_xy_gbr)
+                        uav_inst.altitude = 0.5 
+                        err_mode_xy = tins_error_bin_mode(error_ground_gbr_xy=err_ground_xy_gbr, uav_inst=uav_inst, frame_width=frame.shape[1], frame_height=frame.shape[0])
+                        err_img = [[None, None] for _ in range(3)]
+                        for idx in range(3):
+                            err_img[idx] = transform_ground_to_img_xy(err_mode_xy[idx], uav_inst.altitude, [uav_inst.cam_hfov, uav_inst.cam_vfov], [frame.shape[1], frame.shape[0]])
+                        
+                        print("Error in pixels: ", err_img)
+                        print("Error in meters: ", err_mode_xy)
+                        ####Fly to the tins
+                        uav_inst.state = state.land_tins
 
                 case state.land_tins:
-
+                    print("Landing")
                     pass
                 case state.return_to_launch:
                     pass

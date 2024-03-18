@@ -1,5 +1,8 @@
 from math import atan2, tan, sqrt
 from geopy.distance import distance
+
+
+
 def transform_to_ground_xy(error_img_xy, angle_uav_xy, altitude):
     """Transform the error from the image plane to the ground plane using the altitude and the angle of the UAV. 
     The error is given in pixels. The angle of the UAV is given in radians. The altitude is given in meters. 
@@ -10,6 +13,19 @@ def transform_to_ground_xy(error_img_xy, angle_uav_xy, altitude):
         img_angle = atan2(error_img_xy[idx], d) # Angle of the error respective to camera
         error_ground_xy[idx] = altitude * tan(img_angle + angle_uav_xy[idx]) # Error in the ground plane
     return error_ground_xy
+
+def transform_ground_to_img_xy(error_ground_xy, altitude, fov_hv, img_size):
+    """Transform the error from the ground plane to the image plane using the altitude and the angle of the UAV. 
+    The error is given in meters. The altitude is given in meters. 
+    The output is the error in the image plane in pixels. The angle of the UAV is negleted. This is only for debugging purposes."""
+
+    angles = [0, 0] # Angle of the error respective to camera
+    error_px_xy = [0, 0] # Error in the image plane
+    for idx in range(2):
+        angles[idx] = atan2(error_ground_xy[idx], altitude) # Angle of the error respective to camera
+        error_px_xy[idx] = int((angles[idx]/fov_hv[idx]+0.5) * img_size[idx]) # Error in the image plane
+    return error_px_xy
+
 
 def calculate_new_coordinate(current_lat, current_lon, error_ground_xy, heading):
     """Calculate the new coordinate using the error and the current coordinate"""
@@ -26,6 +42,6 @@ def calculate_size_in_px(altitude, size_object_m, cam_hfov, image_width):
     size_obj = rel_size*image_width #This is the radius of the bigger circle in pixels
     return size_obj
 
-    
+
 
     
