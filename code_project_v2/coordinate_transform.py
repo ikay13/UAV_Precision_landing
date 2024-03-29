@@ -3,15 +3,15 @@ from geopy.distance import distance
 
 
 
-def transform_to_ground_xy(error_img_xy, angle_uav_xy, altitude):
+def transform_to_ground_xy(error_img_xy, altitude ,fov_hv):
+
     """Transform the error from the image plane to the ground plane using the altitude and the angle of the UAV. 
     The error is given in pixels. The angle of the UAV is given in radians. The altitude is given in meters. 
     The output is the error in the ground plane in meters."""
-    d = 1.55 # Distance from camera to virtual image plane
     error_ground_xy = [0, 0] # Error in the ground plane
     for idx in range(2):
-        img_angle = atan2(error_img_xy[idx], d) # Angle of the error respective to camera
-        error_ground_xy[idx] = altitude * tan(img_angle + angle_uav_xy[idx]) # Error in the ground plane
+        img_angle = fov_hv[idx]/2 * error_img_xy[idx] # Angle of the error respective to camera 
+        error_ground_xy[idx] = altitude * tan(img_angle) # Error in the ground plane
     return error_ground_xy
 
 def transform_ground_to_img_xy(error_ground_xy, altitude, fov_hv, img_size):
@@ -23,7 +23,7 @@ def transform_ground_to_img_xy(error_ground_xy, altitude, fov_hv, img_size):
     error_px_xy = [0, 0] # Error in the image plane
     for idx in range(2):
         angles[idx] = atan2(error_ground_xy[idx], altitude) # Angle of the error respective to camera
-        error_px_xy[idx] = int((angles[idx]/fov_hv[idx]+0.5) * img_size[idx]) # Error in the image plane
+        error_px_xy[idx] = int((angles[idx]/(fov_hv[idx])+0.5) * img_size[idx]) # Error in the image plane
     return error_px_xy
 
 
@@ -41,6 +41,13 @@ def calculate_size_in_px(altitude, size_object_m, cam_hfov, image_width):
     rel_size = size_object_m/size_img_on_ground #This is the size of the bigger circle compared to the overall frame
     size_obj = rel_size*image_width #This is the radius of the bigger circle in pixels
     return size_obj
+
+def calculate_altitude(length_px, cam_hfov, img_width, actual_length):
+    """Calculate the altitude of the UAV using the length of the object in pixels and the actual length of the object in meters."""
+    angle_per_px = cam_hfov/img_width #This is the angle per pixel in radians
+    angle_object = length_px*angle_per_px
+    altitude = actual_length/(tan(angle_object)) 
+    return altitude
 
 
 

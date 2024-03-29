@@ -71,11 +71,12 @@ def tin_detection(frame, altitude, cam_hfov, circle_parameters_obj, tin_colours_
     diameter_tin_px = calculate_size_in_px(altitude=altitude, size_object_m=circle_parameters_obj.tin_diameter, cam_hfov=cam_hfov, image_width=frame.shape[1])
     #print("Diameter of the tins in pixels: ", diameter_tin_px)
     ### Get circles using hough circles
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold #Max Thr for canny edge detection
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr #Threshold for circle detection
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold//2 #Max Thr for canny edge detection
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr//2 #Threshold for circle detection
     tolerance = 0.25    #This is the tolarance the circles (of the tins) are expected to be in
     diameter_tin_max = int(diameter_tin_px*(1+tolerance)) #Max diameter of the tin
     diameter_tin_min = int(diameter_tin_px*(1-tolerance)) #Min diameter of the tin
+    print("Diameter of the tins in pixels: ", diameter_tin_max, diameter_tin_min)
     circles = cv.HoughCircles(blur_gray, cv.HOUGH_GRADIENT, 1, 50,
                                 param1=cannyEdgeMaxThr,param2=circleDetectThr,minRadius=diameter_tin_min//2,maxRadius=diameter_tin_max//2)
     canny_edges = cv.Canny(blur_gray, 0.5*cannyEdgeMaxThr, cannyEdgeMaxThr)
@@ -83,8 +84,8 @@ def tin_detection(frame, altitude, cam_hfov, circle_parameters_obj, tin_colours_
     if circles is None:
         canny_edges = cv.cvtColor(canny_edges, cv.COLOR_GRAY2BGR)
         frame = cv.hconcat([frame, canny_edges])
-        cv.imshow("Circles", frame)
-        cv.waitKey(0)
+        #cv.imshow("Circles", frame)
+        #cv.waitKey(0)
         print("No circles found")
         return None
     
@@ -117,7 +118,7 @@ def tin_detection(frame, altitude, cam_hfov, circle_parameters_obj, tin_colours_
     sort_tins_idx = sort_tins(avg_h_val, tin_colours_obj)
 
     colors_to_diplay = ((0, 255, 0), (255, 0, 0), (0, 0, 255))
-    gbr_centers = [None for _ in range(3)]
+    gbr_centers = [[None, None] for _ in range(3)]
     for current_color_idx in range(3): #For each color (green=0, blue=1, red=2) draw the circle
         gbr_idx = sort_tins_idx[current_color_idx]
         if gbr_idx is None:
@@ -141,8 +142,8 @@ def tin_detection(frame, altitude, cam_hfov, circle_parameters_obj, tin_colours_
          
     # canny_edges = cv.cvtColor(canny_edges, cv.COLOR_GRAY2BGR)
     # frame = cv.hconcat([frame, canny_edges])
-    cv.imshow("Circles", frame)
-    cv.waitKey(1)
+    #cv.imshow("Circles", frame)
+    #cv.waitKey(1)
     return gbr_centers
 
 def calculate_error_in_image (coordinates, img_width, img_height): #return error relative to the center of the image
@@ -150,16 +151,15 @@ def calculate_error_in_image (coordinates, img_width, img_height): #return error
     #coordinates is structured [[(g_x,g_y),(b_x,b_y),(r_x,r_y)],[(g_x,g_y),(b_x,b_y),(r_x,r_y)],...]
     coordinates_img = [[None,None] for _ in range(3)]
     for color_idx in range(3):
-        if coordinates[color_idx][0] is not None:
+        if coordinates[color_idx][0] is not None and coordinates[color_idx][1] is not None:
             error_x = (coordinates[color_idx][0] / img_width-0.5)*2
             error_y = (coordinates[color_idx][1] / img_height-0.5)*-1.5
             coordinates_img[color_idx] = (error_x, error_y)
     return coordinates_img
 
-def tin_detection_for_time(frame, uav_inst, circle_parameters_obj, tin_colours_obj):
+def tin_detection_for_time(frame, uav_inst, circle_parameters_obj, tin_colours_obj, altitude):
     """This function is used to run the tin detection for a certain amount of time and return the errors in gbr format. 
     Returns the errors in gbr format if the time is up, returns False if not enough tins are detected and returns None if not done yet."""
-    altitude = uav_inst.altitude
     cam_hfov = uav_inst.cam_hfov
     angle_uav_xy = (uav_inst.angle_x, uav_inst.angle_y)
     time_to_run = 0.5 #Time to run the function in seconds
@@ -174,7 +174,8 @@ def tin_detection_for_time(frame, uav_inst, circle_parameters_obj, tin_colours_o
         error_img = calculate_error_in_image(coordinates=gbr_centers, img_width=frame.shape[1], img_height=frame.shape[0])
         error_ground = [[None, None] for _ in range(3)]
         for idx in range(3):
-            error_ground[idx] = transform_to_ground_xy(error_img_xy=error_img[idx], angle_uav_xy=angle_uav_xy, altitude=altitude)
+            if error_img[idx][0] is not None or error_img[idx][1] is not None:
+                error_ground[idx] = transform_to_ground_xy(error_img_xy=error_img[idx], altitude=altitude, fov_hv=(uav_inst.cam_hfov, uav_inst.cam_vfov))
         tin_detection_for_time.errors_xy.append(error_ground)
     if perf_counter() - tin_detection_for_time.start_time > time_to_run and len(tin_detection_for_time.errors_xy) > tin_detection_for_time.not_detected_cnt:
         return tin_detection_for_time.errors_xy #Return the errors in gbr format
@@ -217,13 +218,13 @@ def tins_error_bin_mode(error_ground_gbr_xy, uav_inst, frame_width, frame_height
                 if error[idx][x_y_idx] > max_xy[x_y_idx]:
                     max_xy[x_y_idx] = error[idx][x_y_idx]
 
-    #Divides the field in which bins where found into 20 equally sized squares
+    #Divides the field in which bins where found into num_bins equally sized squares
     coords_gbr_final_xy = []
-    num_bins = 20
-    offset_x = (max_xy[0]-min_xy[0])/(num_bins*2+0.5)
-    offset_y = (max_xy[1]-min_xy[1])/(num_bins*2+0.5)
-    bins_x = np.linspace(min_xy[0]+offset_x, max_xy[0]-offset_x, 20)
-    bins_y = np.linspace(min_xy[1]+offset_y, max_xy[1]-offset_y, 20)
+    num_bins = 50
+    # offset_x = (max_xy[0]-min_xy[0])/(num_bins*2+0.5)
+    # offset_y = (max_xy[1]-min_xy[1])/(num_bins*2+0.5)
+    bins_x = np.linspace(min_xy[0], max_xy[0], num_bins)
+    bins_y = np.linspace(min_xy[1], max_xy[1], num_bins)
 
     #Sort the errors into bins
     for idx in range(3):
@@ -239,8 +240,14 @@ def tins_error_bin_mode(error_ground_gbr_xy, uav_inst, frame_width, frame_height
         #Find the most common bin
         max_x_idx = max(set(binned_errors_x), key = binned_errors_x.count)
         max_y_idx = max(set(binned_errors_y), key = binned_errors_y.count)
-        x_coord = bins_x[max_x_idx]
-        y_coord = bins_y[max_y_idx]
+        if max_x_idx < len(bins_x)-1:
+            x_coord = (bins_x[max_x_idx]+bins_x[max_x_idx+1])/2
+        else:
+            x_coord = bins_x[max_x_idx]
+        if max_y_idx < len(bins_y)-1:
+            y_coord = (bins_y[max_y_idx]+bins_y[max_y_idx+1])/2
+        else:
+            y_coord = bins_y[max_y_idx]
         coords_gbr_final_xy.append((x_coord, y_coord))
     #print("Coords: ", coords_gbr_final_xy)
     return coords_gbr_final_xy

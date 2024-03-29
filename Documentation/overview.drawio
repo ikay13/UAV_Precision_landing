@@ -1,0 +1,132 @@
+<mxfile host="Electron" modified="2024-03-26T19:21:08.608Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="lNfiPGDswYYFmQlptGR-" version="24.1.0" type="device">
+  <diagram name="Page-1" id="XD0YuXW9omYF2WBM12wj">
+    <mxGraphModel dx="2273" dy="1405" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-1" target="0oVPx6I-UAmW4J8EvDLA-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-1" value="Drone is flying (10m)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-2" value="Fly to next waypoint" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-3" target="0oVPx6I-UAmW4J8EvDLA-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-3" value="List of waypoints" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
+          <mxGeometry x="190" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-8" target="0oVPx6I-UAmW4J8EvDLA-14" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-8" value="Descend until certain height" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="520" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-9" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="440" as="sourcePoint" />
+            <mxPoint x="425" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-11" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="0oVPx6I-UAmW4J8EvDLA-10" vertex="1" connectable="0">
+          <mxGeometry x="0.05" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-9" target="0oVPx6I-UAmW4J8EvDLA-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="505" y="360" />
+              <mxPoint x="505" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-13" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="0oVPx6I-UAmW4J8EvDLA-12" vertex="1" connectable="0">
+          <mxGeometry x="-0.7647" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-9" value="Detect landing platform" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="385" y="320" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-14" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-17" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="0oVPx6I-UAmW4J8EvDLA-16" vertex="1" connectable="0">
+          <mxGeometry x="-0.3643" y="4" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-14" target="0oVPx6I-UAmW4J8EvDLA-22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-14" value="Tins present" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="385" y="620" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-18" target="0oVPx6I-UAmW4J8EvDLA-2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="250" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="600" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-18" value="Save coordinates for drop off" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="540" y="630" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-22" target="0oVPx6I-UAmW4J8EvDLA-24" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-22" value="Pickup tin" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="740" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-24" target="0oVPx6I-UAmW4J8EvDLA-26" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-24" value="Ascend to 10m" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="840" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-26" target="0oVPx6I-UAmW4J8EvDLA-28" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-26" value="Fly to next waypoint (or previously detected one)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="940" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-28" target="0oVPx6I-UAmW4J8EvDLA-31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-28" value="Land on platform" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="0oVPx6I-UAmW4J8EvDLA-31" target="0oVPx6I-UAmW4J8EvDLA-33" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-31" value="Fly to 10m" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1140" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0oVPx6I-UAmW4J8EvDLA-33" value="Drone is flying (Position hold)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="1240" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ILSmvWh9EO1ga4H47QBD-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ILSmvWh9EO1ga4H47QBD-1" target="0oVPx6I-UAmW4J8EvDLA-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ILSmvWh9EO1ga4H47QBD-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="ILSmvWh9EO1ga4H47QBD-1" target="0oVPx6I-UAmW4J8EvDLA-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ILSmvWh9EO1ga4H47QBD-1" value="If two detected, fly to closer platform and save the other one" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="430" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

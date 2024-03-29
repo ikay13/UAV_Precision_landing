@@ -1,0 +1,105 @@
+<mxfile host="Electron" modified="2024-03-13T20:30:41.049Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.0.4 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="DnF3EzYvYn1DuVkBwE7C" version="24.0.4" type="device">
+  <diagram name="Page-1" id="SQSCHcSy7oTGdcU79Qev">
+    <mxGraphModel dx="1434" dy="870" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ko9K8ZToednZOMDINipU-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-1" target="ko9K8ZToednZOMDINipU-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-1" value="Detect colored tins" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="70" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-7" target="ko9K8ZToednZOMDINipU-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-7" value="Read, resize and blur" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-8" value="Hough circle detection based on altitude" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="250" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-9" target="ko9K8ZToednZOMDINipU-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-9" value="Get average color inside of each circle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="440" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-10" target="ko9K8ZToednZOMDINipU-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-36" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ko9K8ZToednZOMDINipU-25">
+          <mxGeometry x="0.28" y="-3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-10" target="ko9K8ZToednZOMDINipU-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-37" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ko9K8ZToednZOMDINipU-35">
+          <mxGeometry x="-0.8972" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-10" value="At least&amp;nbsp;&lt;div&gt;one circle&amp;nbsp;&lt;div&gt;found&lt;/div&gt;&lt;/div&gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="385" y="330" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-11" target="ko9K8ZToednZOMDINipU-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-11" value="Match average colors to expected colors based on hue value (Sort and minimize avg diff in hue)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="363" y="530" width="125" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-12" target="ko9K8ZToednZOMDINipU-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-38" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ko9K8ZToednZOMDINipU-30">
+          <mxGeometry x="0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-12" target="ko9K8ZToednZOMDINipU-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-39" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ko9K8ZToednZOMDINipU-34">
+          <mxGeometry x="-0.6552" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-12" value="Difference&amp;nbsp;&lt;div&gt;smaller than threshold&lt;/div&gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="375" y="710" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-13" target="ko9K8ZToednZOMDINipU-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-13" value="Calculate average diffenence in hue values" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="630" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-15" target="ko9K8ZToednZOMDINipU-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-15" value="Calculate error of correct colour tin and land on it" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="970" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-16" target="ko9K8ZToednZOMDINipU-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ko9K8ZToednZOMDINipU-16" target="ko9K8ZToednZOMDINipU-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-16" value="Correct&amp;nbsp;&lt;div&gt;color tin&amp;nbsp;&lt;/div&gt;&lt;div&gt;exists&lt;/div&gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="385" y="840" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-17" value="Land in the middle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="970" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-22" value="Done" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="1070" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ko9K8ZToednZOMDINipU-33" value="Not the pickup target. Save waypoint for later use" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="730" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
