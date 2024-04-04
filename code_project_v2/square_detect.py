@@ -188,15 +188,9 @@ def findContours(threshold_img, grayscale_img, altitude, size_square, cam_hfov):
         image_width_px = grayscale_img.shape[1]
         bounding_box = checkIfSquare(c, approx_temp, altitude, image_centerX, image_centerY, size_square, image_width_px, cam_hfov)
         if bounding_box is not False:
-            cv.drawContours(grayscale_img, [approx_temp], -1, (0, 255, 0), 2)    
+            # cv.drawContours(grayscale_img, [approx_temp], -1, (0, 255, 0), 2)    
             approx.append(approx_temp)
 
-    # plt.subplot(131), plt.imshow(grayscale_img, 'gray'), plt.title('Original Image')
-    # plt.subplot(132), plt.imshow(threshold_img, 'gray'), plt.title('Thresholded Image')
-    # plt.show()
-    disp_img = cv.hconcat([grayscale_img, threshold_img])
-    cv.imshow('Grayscale and threshold', disp_img)
-    cv.waitKey(1)
     return approx #return the contour of the square or none if no square is found
 
 def calculate_error_image (square_contour, img_width, img_height): #return error relative to the center of the image
@@ -224,6 +218,7 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
     square_contour = findContours(threshold_img, grayscale_img,altitude, size_square, cam_hfov)
     
     if square_contour != []: #At least one square is detected
+        cv.drawContours(frame, square_contour, -1, (0, 0, 0), 2)
         for cnt in square_contour:
             error_tmp = calculate_error_image(cnt, grayscale_img.shape[1], grayscale_img.shape[0])
             error.append(error_tmp)
@@ -231,9 +226,9 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
             if perimeter > perimeter_max:
                 perimeter_max = perimeter
         alt_from_contour = calculate_altitude(perimeter_max/4, cam_hfov, grayscale_img.shape[1], size_square)
-        return error, alt_from_contour
+        return error, alt_from_contour, threshold_img
     else:
-        return None, None
+        return None, None, threshold_img
 
 
 def calculate_target_error(errors_xy):
@@ -411,7 +406,7 @@ def check_for_time(frame, altitude,duration,ratio_detected, size_square, cam_hfo
         check_for_time.errors_xy = []
         check_for_time.not_detected_cnt = 0
     
-    err_square, _ = detect_square_main(frame, altitude, size_square, cam_hfov)
+    err_square, _, threshold_img = detect_square_main(frame, altitude, size_square, cam_hfov)
     if err_square != None: #If a square is detected, add the error to the list
         check_for_time.errors_xy.append(err_square)
     else:
@@ -420,11 +415,11 @@ def check_for_time(frame, altitude,duration,ratio_detected, size_square, cam_hfo
     if perf_counter() - check_for_time.start_time > duration: #If 3 seconds have passed, check if a square was detected in more than half of the frames
         if len(check_for_time.errors_xy )/(check_for_time.not_detected_cnt+1e-5) > ratio_detected: #If more than half of the frames have a square, get target error
             calculated_target_err, is_bimodal =  calculate_target_error(check_for_time.errors_xy)
-            return calculated_target_err, is_bimodal
+            return calculated_target_err, is_bimodal, threshold_img
         else:
-            return False, False
+            return False, False, threshold_img
     else:
-        return None, False
+        return None, False, threshold_img
 
     
     
