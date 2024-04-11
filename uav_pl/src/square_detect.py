@@ -215,6 +215,8 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
     # cv.imshow("saturation", saturation)
     # cv.waitKey(1)
     threshold_img = thresholding(grayscale_img)
+    # cv.imshow("Disp1",frame)
+    # cv.imshow("Disp2",threshold_img)
     square_contour = findContours(threshold_img, grayscale_img,altitude, size_square, cam_hfov)
     
     if square_contour != []: #At least one square is detected

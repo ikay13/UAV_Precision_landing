@@ -216,6 +216,7 @@ class main():
         self.offboard_switch_time = None
         self.waypoint_pushed = False
         self.radius_of_proximity = np.Inf
+        self.updated_img = False
 
         rospy.Subscriber("/iris_downward_depth_camera/camera/rgb/image_raw/compressed",CompressedImage,callback=self.camera)
         rospy.Subscriber("/mavros/local_position/pose",PoseStamped,callback=self.current_position)
@@ -227,8 +228,8 @@ class main():
         self.waypoint_pose_pub = rospy.Publisher("/mavros/setpoint_position/local",PoseStamped,queue_size=50)
         self.img_pub = rospy.Publisher("/iris_downward_depth_camera/camera/landing/rgb/image_raw/compressed",CompressedImage,queue_size=100)
 
-        self.waypoints = [[60.0, 120, 4.0],
-                          [48.0, 116.0, 4.0]]                 
+        self.waypoints = [[-10, 40, 4.0],
+                          [4, 30.0, 4.0]]                 
 
 
         self.waypoint_pose.header.frame_id = 'map'
@@ -255,6 +256,7 @@ class main():
 
     def camera(self,msg):
         self.cv_image = self.Bridge.compressed_imgmsg_to_cv2(msg,"bgr8")
+        self.updated_img = True
 
     def monitor_state(self,msg):
         self.px4_state = msg
@@ -262,10 +264,10 @@ class main():
     def landing(self):
                 
         if self.current_pose != None and self.waypoint_pose != None:
-
-            if self.uav_inst.state == self.state_inst.initial and (rospy.Time.now().to_sec() - self.initialization_time) > 2:
+            img = None
+            if self.uav_inst.state == self.state_inst.initial: #and (rospy.Time.now().to_sec() - self.initialization_time) > 2:
                 rospy.loginfo_once("Vehicle is ready to armed...")
-                if self.px4_state.armed and (rospy.Time.now().to_sec() - self.initialization_time) > 5:
+                if self.px4_state.armed: #and (rospy.Time.now().to_sec() - self.initialization_time) > 5:
                     if self.px4_state.mode != 'AUTO.TAKEOFF':
                         mode = self.set_mode(custom_mode='AUTO.TAKEOFF')
                         if mode.mode_sent:
@@ -296,37 +298,46 @@ class main():
                     delta_y = (self.waypoint_pose.pose.position.y - self.current_pose.pose.position.y)
                     self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
 
-                    if (rospy.Time.now().to_sec() - self.offboard_switch_time) > 5:
+                    if (rospy.Time.now().to_sec() - self.offboard_switch_time) > 2:
                         mode = self.set_mode(custom_mode='OFFBOARD')
                         if mode.mode_sent:
                             rospy.loginfo_once("Waypoint received: x = {}, y = {}, z = {}.\n".format(self.waypoint_pose.pose.position.x,self.waypoint_pose.pose.position.y,self.waypoint_pose.pose.position.z))
                             rospy.loginfo_once("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
 
-            if 0 <= self.radius_of_proximity <= 1 and self.uav_inst.state != self.state_inst.detect_square:
+            if 0 <= self.radius_of_proximity <= 0.5 and self.uav_inst.state != self.state_inst.detect_square:
                 self.uav_inst.state = self.state_inst.detect_square
                 mode = self.set_mode(custom_mode='AUTO.LOITER')
                 if mode.mode_sent:
                     rospy.loginfo_once("Vehicle is now in LOITER mode.")
                     self.target_reached_time = rospy.Time.now().to_sec()
-                
-            if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
-                square_detected_err, is_bimodal, threshold_img = check_for_time(frame=self.cv_image, altitude=self.uav_inst.altitude,duration=1.5,
-                                                    ratio_detected=0.5, size_square=self.target_parameters_obj.size_square, cam_hfov=self.uav_inst.cam_hfov)
-                debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
-                if square_detected_err is None:
-                    pass #time not over yet
-                elif square_detected_err is False:
-                    self.uav_inst.state = self.state_inst.fly_to_waypoint
-                    self.waypoint_pushed = False
-                    self.offboard_switch_time = rospy.Time.now().to_sec()                  
-                    rospy.loginfo("Square not detected. Flying to next waypoint.")
-                else: #Done and detected
-                    rospy.loginfo("Square plate detected.")
+            
+            if self.updated_img:             
+                if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
+                    square_detected_err, is_bimodal, threshold_img = check_for_time(frame=self.cv_image, altitude=self.uav_inst.altitude,duration=10,
+                                                        ratio_detected=0.5, size_square=self.target_parameters_obj.size_square, cam_hfov=self.uav_inst.cam_hfov)
+                    # cv.imshow("Thresholded image:", threshold_img)
+                    debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
+                    # self.cv_image = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
+                    img = display_error_and_text(debugging_frame,self.uav_inst)
+                    if square_detected_err is None:
+                        pass #time not over yet
+                    elif square_detected_err is False:
+                        self.uav_inst.state = self.state_inst.fly_to_waypoint
+                        self.waypoint_pushed = False
+                        self.offboard_switch_time = rospy.Time.now().to_sec()
+                        check_for_time.start_time = None                  
+                        rospy.loginfo("Square not detected. Flying to next waypoint.")
+                    else: #Done and detected
+                        rospy.loginfo("Square plate detected.")
+                        check_for_time.start_time = None
 
-                self.cv_image = display_error_and_text(debugging_frame,self.uav_inst)
+                    self.updated_img = False
 
-            cv.imshow("Display",self.cv_image)
-            cv.waitKey(1)
+                if img is None:    
+                    cv.imshow("Display",self.cv_image)
+                else:
+                    cv.imshow("Display",img)
+                cv.waitKey(1)
 
                     # if is_bimodal:#two targets in image
                     #     for idx in range(2):
