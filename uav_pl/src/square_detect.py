@@ -207,6 +207,7 @@ def calculate_error_image (square_contour, img_width, img_height): #return error
 
 def detect_square_main(frame, altitude, size_square, cam_hfov):
     """Main function to detect a square in the frame, return the error in the x and y direction if a square is found, else return None"""
+    # print("Frame: {}, Alt: {}, Sq. size: {}, HFOV: {}".format(frame.shape, altitude,size_square,cam_hfov))
     error = []
     perimeter_max = 0
     # hsv_img = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -227,7 +228,9 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
             perimeter = cv.arcLength(cnt, True)
             if perimeter > perimeter_max:
                 perimeter_max = perimeter
+                # print("Edge length is: {}.\n".format(perimeter/4))
         alt_from_contour = calculate_altitude(perimeter_max/4, cam_hfov, grayscale_img.shape[1], size_square)
+        # print("Image_Alt: {}".format(alt_from_contour))
         return error, alt_from_contour, threshold_img
     else:
         return None, None, threshold_img

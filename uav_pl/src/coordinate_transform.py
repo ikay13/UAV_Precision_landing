@@ -46,7 +46,7 @@ def calculate_altitude(length_px, cam_hfov, img_width, actual_length):
     """Calculate the altitude of the UAV using the length of the object in pixels and the actual length of the object in meters."""
     angle_per_px = cam_hfov/img_width #This is the angle per pixel in radians
     angle_object = length_px*angle_per_px
-    altitude = actual_length/(tan(angle_object)) 
+    altitude = (actual_length)/(2*tan(angle_object/2)) 
     return altitude
 
 
