@@ -75,15 +75,15 @@ class error_estimation:
         self.altitude_m_avg = 0
 
         self.altitude_m = 0
-        self.target_lat = 0
-        self.target_lon = 0
+        # self.target_lat = 0
+        # self.target_lon = 0
         self.list_length = 5
         self.err_px_x = 0
         self.err_px_y = 0
         self.p_value = 0.95
-        self.time_last_detection = time.time()
+        self.time_last_detection = None
 
-    def update_errors(self, x_img, y_img, altitude_m, uav_lat, uav_lon, heading, cam_fov_hv, image_size):
+    def update_errors(self, x_img, y_img, altitude_m, cam_fov_hv, image_size):
         """Update the errors in the image and ground plane and the target lat and lon"""     
         #Assign current errors
         self.x_img = x_img
@@ -132,13 +132,13 @@ class error_estimation:
         self.altitude_m_avg = self.altitude_m_avg/weight_total
 
         #Calculate the target lat and lon using the avg value
-        self.target_lat, self.target_lon = calculate_new_coordinate(uav_lat, uav_lon, [self.x_m_avg, self.y_m_avg], heading)
+        # self.target_lat, self.target_lon = calculate_new_coordinate(uav_lat, uav_lon, [self.x_m_avg, self.y_m_avg], heading)
 
         #Calculate the error in pixels using the avg value
         curr_err_px = transform_ground_to_img_xy((self.x_m_avg, self.y_m_avg), self.altitude_m_avg, cam_fov_hv, image_size)
         self.err_px_x = curr_err_px[0]
         self.err_px_y = curr_err_px[1]
-        self.time_last_detection = time.time()
+        self.time_last_detection = rospy.Time.now().to_sec()
     
     def clear_errors(self):
         """Clears all errors from list (used when drone moved to new point)"""
@@ -154,7 +154,7 @@ class error_estimation:
 
     def check_for_timeout(self):
         """Check if the time since last detection of an object is more than 3s"""
-        if time.time() - self.time_last_detection > 15:################################change later
+        if rospy.Time.now().to_sec() - self.time_last_detection > 5:################################change later
             return True
         return False
 
@@ -162,14 +162,14 @@ class error_estimation:
 class uav(state):
     def __init__(self):
         state.__init__(self)
-        self.altitude = 4 #Altitude of the fc in meters
+        self.altitude = None #Altitude of the fc in meters
         self.heading = 0 #Heading of the UAV in radians
         self.latitude = 29.183972 #Current of the UAV
         self.longitude = -81.043251 #Current longitude of the UAV
         self.state = self.initial
-        self.cam_hfov = 60*pi/180 #Input by user
-        self.cam_vfov = 34*pi/180 #Input by user
-        self.image_size = [850, 478] #Automatically updated by the code
+        self.cam_hfov = 65*np.pi/180 #Input by user
+        self.cam_vfov = 52*np.pi/180 #Input by user
+        self.image_size = [640, 480] #Automatically updated by the code
 
 class target_parameters:
     def __init__(self):
@@ -219,6 +219,7 @@ class main():
         self.waypoint_pushed = False
         self.radius_of_proximity = np.Inf
         self.updated_img = False
+        self.descend_altitude = None
 
         rospy.Subscriber("/iris_downward_depth_camera/camera/rgb/image_raw/compressed",CompressedImage,callback=self.camera)
         rospy.Subscriber("/mavros/local_position/pose",PoseStamped,callback=self.current_position)
@@ -252,10 +253,13 @@ class main():
 
     def current_position(self,msg):
         self.current_pose = msg
+        self.uav_inst.altitude = self.current_pose.pose.position.z
         self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
 
     def camera(self,msg):
         self.cv_image = self.Bridge.compressed_imgmsg_to_cv2(msg,"bgr8")
+        self.cv_image = cv.resize(self.cv_image, (640, 480))
+        self.uav_inst.image_size = (self.cv_image.shape[1], self.cv_image.shape[0])
         self.updated_img = True
 
     def monitor_state(self,msg):
@@ -286,38 +290,37 @@ class main():
                     else:
                         pass
                 
-                if self.waypoint_pushed:
-                    self.waypoint_pose_pub.publish(self.waypoint_pose)
-                    delta_x = (self.waypoint_pose.pose.position.x - self.current_pose.pose.position.x)
-                    delta_y = (self.waypoint_pose.pose.position.y - self.current_pose.pose.position.y)
-                    self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
-                    self.offboard_switch_time = rospy.Time.now().to_sec() - self.offboard_switch_time
-                    if self.offboard_switch_time > 2:
-                        if self.px4_state.mode != 'OFFBOARD':
-                            mode = self.set_mode(custom_mode='OFFBOARD')
-                            if mode.mode_sent:
-                                rospy.loginfo("Waypoint received: x = {}, y = {}, z = {}.\n".format(self.waypoint_pose.pose.position.x,
-                                                                                                         self.waypoint_pose.pose.position.y,
-                                                                                                         self.waypoint_pose.pose.position.z))
-                                rospy.loginfo("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
+                self.waypoint_pose_pub.publish(self.waypoint_pose)
+                delta_x = (self.waypoint_pose.pose.position.x - self.current_pose.pose.position.x)
+                delta_y = (self.waypoint_pose.pose.position.y - self.current_pose.pose.position.y)
+                self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
+                self.offboard_switch_time = rospy.Time.now().to_sec() - self.offboard_switch_time
+                if self.offboard_switch_time > 2:
+                    if self.px4_state.mode != 'OFFBOARD':
+                        mode = self.set_mode(custom_mode='OFFBOARD')
+                        if mode.mode_sent:
+                            rospy.loginfo("Waypoint received: x = {}, y = {}, z = {}.\n".format(self.waypoint_pose.pose.position.x,
+                                                                                                        self.waypoint_pose.pose.position.y,
+                                                                                                        self.waypoint_pose.pose.position.z))
+                            rospy.loginfo("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
 
-                    if self.radius_of_proximity <= 0.5:
-                        self.loiter_switch_time = rospy.Time.now().to_sec() - self.loiter_switch_time
-                        
-                    if self.loiter_switch_time > 3:
-                        if self.px4_state.mode != 'AUTO.LOITER':    
-                            mode = self.set_mode(custom_mode='AUTO.LOITER')
-                            if mode.mode_sent:
-                                rospy.loginfo("Vehicle is now in LOITER mode.")
-                                self.target_reached_time = rospy.Time.now().to_sec()
-                                self.uav_inst.state = self.state_inst.detect_square
+                if self.radius_of_proximity <= 0.5:
+                    self.loiter_switch_time = rospy.Time.now().to_sec() - self.loiter_switch_time
+                    
+                if self.loiter_switch_time > 5:
+                    if self.px4_state.mode != 'AUTO.LOITER':    
+                        mode = self.set_mode(custom_mode='AUTO.LOITER')
+                        if mode.mode_sent:
+                            rospy.loginfo("Vehicle is now in LOITER mode.")
+                            self.target_reached_time = rospy.Time.now().to_sec()
+                            self.uav_inst.state = self.state_inst.detect_square
             
             if self.updated_img:             
                 if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 2:
                     square_detected_err, is_bimodal, threshold_img = check_for_time(frame=self.cv_image, altitude=self.uav_inst.altitude,duration=2,
                                                         ratio_detected=0.5, size_square=self.target_parameters_obj.size_square, cam_hfov=self.uav_inst.cam_hfov)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
-                    self.cv_image = display_error_and_text(debugging_frame,self.uav_inst)
+                    self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                     if square_detected_err is None:
                         pass #time not over yet
                     elif square_detected_err is False:
@@ -327,35 +330,72 @@ class main():
                         check_for_time.start_time = None                  
                         rospy.loginfo("Square not detected. Flying to next waypoint.")
                     else: #Done and detected
-                        rospy.loginfo("Square plate detected.")
+                        if is_bimodal:
+                            for idx in range(2):
+                                current_err = square_detected_err[idx-1] #Reverse order so that closer waypoint is last in list
+                                self.err_estimation.update_errors(current_err[0], current_err[1], self.current_pose.pose.position.z, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                                self.err_estimation.clear_errors() #Clear the errors so that the average is not used (two differnt platforms)
+                            
+                                self.waypoints.append([self.current_pose.pose.position.x + self.err_estimation.x_m_avg,
+                                                       self.current_pose.pose.position.y + self.err_estimation.y_m_avg,
+                                                       6])
+                            
+                        else:
+                            self.err_estimation.update_errors(square_detected_err[0], square_detected_err[1], self.current_pose.pose.position.z, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                            self.waypoints.append([self.current_pose.pose.position.x + self.err_estimation.x_m_avg,
+                                                   self.current_pose.pose.position.y + self.err_estimation.y_m_avg,
+                                                   6])
+                        
+                        error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
+                        if error_in_m < 1.5:
+                            # self.err_estimation.time_last_detection = rospy.Time.now().to_sec()
+                            self.uav_inst.state = self.state_inst.descend_square
+                            self.waypoints.pop()
+                            self.descend_altitude = self.current_pose.pose.position.z
+                            rospy.loginfo("Target detected and now descending")
+                        else:
+                            rospy.loginfo("Target detected but too far away. Flying closer. Distance: " + str(error_in_m) + "m")
+                            self.uav_inst.state = self.state_inst.fly_to_waypoint
+                            self.waypoint_pushed = False
+                            self.offboard_switch_time = rospy.Time.now().to_sec()
+                        
                         check_for_time.start_time = None
 
-                    self.updated_img = False
+                if self.uav_inst.state == self.state_inst.descend_square:
+                    if self.current_pose.pose.position.z >= 2:
+                        rospy.loginfo(self.descend_altitude)
+                        error_xy, self.descend_altitude, threshold_img = detect_square_main(self.cv_image, self.descend_altitude, self.target_parameters_obj.size_square, self.uav_inst.cam_hfov)
+                        debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
+                        if error_xy != None: #Target detected
+                            self.err_estimation.update_errors(error_xy[0][0], error_xy[0][1], self.descend_altitude, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                            
+                            self.waypoint_pose.pose.position.x = self.current_pose.pose.position.x + self.err_estimation.x_m_avg
+                            self.waypoint_pose.pose.position.y = self.current_pose.pose.position.y + self.err_estimation.y_m_avg
+                            self.waypoint_pose.pose.position.z = self.current_pose.pose.position.z - 0.1
+                            self.waypoint_pose_pub.publish(self.waypoint_pose)
+
+                        elif self.err_estimation.check_for_timeout(): #No target detected for 3s
+                            rospy.loginfo("Timeout")
+                            # self.uav_inst.state = self.state_inst.return_to_launch
+                            if self.px4_state.mode != 'AUTO.LOITER':    
+                                mode = self.set_mode(custom_mode='AUTO.LOITER')
+                                if mode.mode_sent:
+                                    rospy.loginfo("Vehicle is now in LOITER mode.")
+                        else: #Target not detected but was detected recently
+                            navigate_pixhawk.lost_target_ascend()
+
+                        if (self.descend_altitude is not None and self.descend_altitude < 2): #remove skip later
+                            self.uav_inst.state = self.state_inst.descend_concentric
+                            if self.px4_state.mode != 'AUTO.LOITER':    
+                                mode = self.set_mode(custom_mode='AUTO.LOITER')
+                                if mode.mode_sent:
+                                    rospy.loginfo("Vehicle is now in LOITER mode.")
+
+                self.updated_img = False 
 
                 img_to_msg = self.Bridge.cv2_to_compressed_imgmsg(self.cv_image,'jpg')
                 self.img_pub.publish(img_to_msg)
 
-                    # if is_bimodal:#two targets in image
-                    #     for idx in range(2):
-                    #         current_err = square_detected_err[idx-1] #Reverse order so that closer waypoint is last in list
-                    #         self.err_estimation.update_errors(current_err[0], current_err[1], self.uav_inst.altitude, self.uav_inst.latitude, 
-                    #                                 self.uav_inst.longitude, self.uav_inst.heading, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
-                    #         self.err_estimation.clear_errors() #Clear the errors so that the average is not used (two differnt platforms)
-                    #     self.waypoints_obj.waypoints.append((self.err_estimation.target_lat, self.err_estimation.target_lon))
-                        
-                    # else:
-                    #     self.err_estimation.update_errors(square_detected_err[0], square_detected_err[1], self.uav_inst.altitude, self.uav_inst.latitude, 
-                    #                                 self.uav_inst.longitude, self.uav_inst.heading, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
-                    #     self.waypoints_obj.waypoints.append((self.err_estimation.target_lat, self.err_estimation.target_lon))
-                    
-                    # error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
-                    # if error_in_m < 1.5:
-                    #     self.err_estimation.time_last_detection = time.time()
-                    #     self.uav_inst.state = self.state_inst.descend_square
-                    #     print("Target detected and now descending")
-                    # else:
-                    #     print("Target detected but too far away. Flying closer. Distance: " + str(error_in_m) + "m")
-                    #     self.uav_inst.state = self.state_inst.fly_to_waypoint
 
 
 
