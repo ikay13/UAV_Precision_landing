@@ -32,7 +32,7 @@ def display_error_and_text(frame, curr_err_px_tuple, alt_from_img, uav_inst):
     middle_point = (frame_width // 2 - frame_width //4, frame_height // 2)
 
     # Calculate the end point of the arrow
-    end_point = curr_err_px
+    end_point = (curr_err_px[0], curr_err_px[1])
 
     texts = [f"State: {list_states[state]}", f"Altitude from FC: {altitude:.2f}", f"Altitude from image: {alt_from_img:.2f}"]
     # # Calculate the angle of the arrow
