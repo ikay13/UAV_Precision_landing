@@ -37,7 +37,7 @@ def calculate_new_coordinate(current_lat, current_lon, error_ground_xy, heading)
 
 def calculate_size_in_px(altitude, size_object_m, cam_hfov, image_width):
     """Calculate the size of the object in pixels"""
-    size_img_on_ground = tan(cam_hfov/2)*altitude #This is the image width on the ground in meters
+    size_img_on_ground = tan(cam_hfov/2)*altitude*2 #This is the image width on the ground in meters
     rel_size = size_object_m/size_img_on_ground #This is the size of the bigger circle compared to the overall frame
     size_obj = rel_size*image_width #This is the radius of the bigger circle in pixels
     return size_obj

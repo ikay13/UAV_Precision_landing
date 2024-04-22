@@ -149,7 +149,7 @@ class error_estimation:
 
     def check_for_timeout(self):
         """Check if the time since last detection of an object is more than 3s"""
-        if rospy.Time.now().to_sec() - self.time_last_detection > 60:################################change later
+        if rospy.Time.now().to_sec() - self.time_last_detection > 7:################################change later
             return True
         return False
 
@@ -238,14 +238,16 @@ class main():
         
         #####Publishers#####
         # Create a publisher for the waypoint pose topic
-        self.waypoint_pose_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=50)
+        self.waypoint_pose_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=3)
         # Create a publisher for the landing camera image topic
         self.img_pub = rospy.Publisher("/iris_downward_depth_camera/camera/landing/rgb/image_raw/compressed", CompressedImage, queue_size=100)
         # Create a publisher for the velocity topic
-        self.velocity_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=100)
+        self.velocity_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=3)
         
         # Define the waypoints for the UAV to fly to (relative to map frame)
-        self.waypoints = [[-10, 40, 10.0],
+        # self.waypoints = [[-10, 40, 10.0],
+        #           [4, 30.0, 10.0]]
+        self.waypoints = [[-11, 36, 10.0],
                   [4, 30.0, 10.0]]
 
 
@@ -308,14 +310,15 @@ class main():
             # Calculate the angle between the estimated position and the target position
             theta_horizontal = np.arctan2(self.err_estimation.y_m_avg, self.err_estimation.x_m_avg) #Angle to the target in x-y plane
 
-            theta_vertical = np.arctan2(deltaS, self.err_estimation.altitude_m_avg) #Angle to the target in x-z plane
+            theta_vertical = np.arctan2(deltaS, self.err_estimation.altitude_m_avg) #Angle to the target in relative to straight down plane
 
             # Calculate the linear velocity based on the distance
-            self.linear_vel = 0.2 * deltaS
+            gain = 0.3
+            self.linear_vel = gain * deltaS
             self.linear_vel = 0.5 if self.linear_vel > 0.5 else self.linear_vel #Avoid going too fast to be safe
 
             # Publish the correction position if the distance is greater than 0.2
-            if theta_vertical > 15*np.pi/180: #Not well aligned in z (more than 15 deg off)
+            if theta_vertical > 10*np.pi/180: #Not well aligned in z (more than 10 deg off)
                 rospy.loginfo("Aligning")
                 
                 # Set the linear velocity components in the x and y directions
@@ -333,7 +336,8 @@ class main():
                 self.final_vel.twist.linear.y = self.linear_vel * np.sin(theta_horizontal)
                 if is_low_altitude:
                     self.final_vel.twist.linear.z = -0.2
-                self.final_vel.twist.linear.z = -0.5 #Descend with 0.5 m/s
+                else:
+                    self.final_vel.twist.linear.z = -0.5 #Descend with 0.5 m/s
                 # Publish the velocity message
             self.velocity_pub.publish(self.final_vel)
 
@@ -395,16 +399,16 @@ class main():
                 self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
                 
                 # Calculate the time since the offboard switch
-                self.offboard_switch_time = rospy.Time.now().to_sec() - self.offboard_switch_time
+                time_passed_offboard = rospy.Time.now().to_sec() - self.offboard_switch_time
                 
                 # Check if enough time has passed since the offboard switch
-                if self.offboard_switch_time > 2:
+                if time_passed_offboard > 2:
                     # Check if the vehicle is not already in OFFBOARD mode
                     if self.px4_state.mode != 'OFFBOARD':
                         # Switch the vehicle to OFFBOARD mode
-                        print("Switching to offboard mode")
-                        print(self.px4_state.mode)
                         mode = self.set_mode(custom_mode='OFFBOARD')
+                        #Reset the time passed to not check right again as the subscriber frequency for the mode is low
+                        self.offboard_switch_time = rospy.Time.now().to_sec() 
                         if mode.mode_sent:
                             rospy.loginfo("Waypoint received: x = {}, delta x = {}, y = {}, delta y = {}, z = {}.\n"
                                           .format(self.waypoint_pose.pose.position.x, delta_x, self.waypoint_pose.pose.position.y, 
@@ -413,22 +417,18 @@ class main():
                 
                 # Check if the radius of proximity is less than or equal to 0.2
                 if self.radius_of_proximity <= 0.2:
-                    # Calculate the time since the loiter switch
-                    self.loiter_switch_time = rospy.Time.now().to_sec() - self.loiter_switch_time
-                
-                # Check if enough time has passed since the loiter switch to be sure the UAV is stable
-                if self.loiter_switch_time > 5:
-                    # Check if the vehicle is not already in AUTO.LOITER mode
-                    if self.px4_state.mode != 'AUTO.LOITER':    
-                        # Switch the vehicle to AUTO.LOITER mode
-                        mode = self.set_mode(custom_mode='AUTO.LOITER')
-                        if mode.mode_sent:
-                            rospy.loginfo("Vehicle is now in LOITER mode.")
-                            self.target_reached_time = rospy.Time.now().to_sec()
-                            self.uav_inst.state = self.state_inst.detect_square
+                    # if self.px4_state.mode != 'AUTO.LOITER':    
+                    # print("setting to loiter mode")
+                    # # Switch the vehicle to AUTO.LOITER mode
+                    # mode = self.set_mode(custom_mode='AUTO.LOITER')
+                    # if mode.mode_sent:
+                    #         rospy.loginfo("Vehicle is now in LOITER mode.")
+                    self.target_reached_time = rospy.Time.now().to_sec()
+                    self.uav_inst.state = self.state_inst.detect_square
+                   
             
             if self.updated_img:    #Only run if new image is available         
-                if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 2:
+                if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
                     # Check if square is detected within a certain duration
                     square_detected_err, is_bimodal, threshold_img = check_for_time(frame=self.cv_image, altitude=self.uav_inst.altitude, duration=2,
                                                                                     ratio_detected=0.5, size_square=self.target_parameters_obj.size_square, cam_hfov=self.uav_inst.cam_hfov)
@@ -449,6 +449,7 @@ class main():
                         rospy.loginfo("Square not detected. Flying to next waypoint.")
                     else:  # Done and detected
                         if is_bimodal:
+                            rospy.loginfo("Bimodal distribution detected")
                             # If multiple squares are detected, update errors for each square
                             for idx in range(2):
                                 current_err = square_detected_err[idx-1]  # Reverse order so that closer waypoint is last in list
@@ -469,7 +470,7 @@ class main():
 
                         error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
                         print("current error: ", error_in_m)
-                        if error_in_m < 1:
+                        if error_in_m < 2:
                             # If error is within threshold, switch to descending state
                             self.uav_inst.state = self.state_inst.descend_square
                             self.waypoints.pop()
@@ -495,22 +496,6 @@ class main():
                         if error_xy != None: #Target detected
                             # Update the errors using the weighted running average filter
                             self.err_estimation.update_errors(error_xy[0][0], error_xy[0][1], self.descend_altitude, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
-                            # rospy.loginfo("x_m_avg: {}, y_m_avg: {}.\n".format(self.err_estimation.x_m_avg,self.err_estimation.y_m_avg))
-                            # if 0.1<self.err_estimation.x_m_avg or -0.1>self.err_estimation.x_m_avg:
-                            #     rospy.loginfo("Aligning in x.")
-                            #     self.waypoint_pose.pose.position.x = self.current_pose.pose.position.x + self.err_estimation.x_m_avg
-                            #     self.waypoint_pose.pose.position.y = self.current_pose.pose.position.y
-                            #     self.waypoint_pose.pose.position.z = self.current_pose.pose.position.z
-                            # elif 0.1<self.err_estimation.y_m_avg or -0.1>self.err_estimation.y_m_avg:
-                            #     rospy.loginfo("Aligning in y.")
-                            #     self.waypoint_pose.pose.position.x = self.current_pose.pose.position.x
-                            #     self.waypoint_pose.pose.position.y = self.current_pose.pose.position.y + self.err_estimation.y_m_avg
-                            #     self.waypoint_pose.pose.position.z = self.current_pose.pose.position.z
-                            # else:
-                            #     rospy.loginfo("Descending.")
-                            #     self.waypoint_pose.pose.position.x = self.current_pose.pose.position.x
-                            #     self.waypoint_pose.pose.position.y = self.current_pose.pose.position.y
-                            #     self.waypoint_pose.pose.position.z = self.current_pose.pose.position.z - 0.3
                             
                             self.guided_descend()
                            
@@ -523,14 +508,10 @@ class main():
                                 rospy.loginfo("Descending using concentric circles")
                                     
 
-                        elif self.err_estimation.check_for_timeout(): #No target detected for 3s
+                        elif self.err_estimation.check_for_timeout(): #No target detected for X s
                             rospy.loginfo_once("Timeout")
-                            # self.uav_inst.state = self.state_inst.return_to_launch
-                            if self.px4_state.mode != 'AUTO.LOITER':    
-                                mode = self.set_mode(custom_mode='AUTO.LOITER')
-                                if mode.mode_sent:
-                                    rospy.loginfo_once("Vehicle is now in LOITER mode.")
-                        else: #Target not detected but was detected recently
+                            self.uav_inst.state = self.state_inst.return_to_launch
+                        elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                             # Set the linear velocity components in the x, y, and z directions
                             self.slight_ascend()
                             """ if self.px4_state.mode != 'AUTO.LAND':    
@@ -551,8 +532,8 @@ class main():
                         self.guided_descend()
                     elif self.err_estimation.check_for_timeout(): #No target detected for 3s
                         print("Timeout")
-                        pass
-                    else: #Target not detected but was detected recently
+                        self.uav_inst.state = self.state_inst.return_to_launch
+                    elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                         self.slight_ascend()
 
                     if self.err_estimation.altitude_m_avg < 2:
@@ -569,9 +550,10 @@ class main():
                     elif self.err_estimation.check_for_timeout() and self.err_estimation.altitude_m > 0.5:
                         print("Timeout")
                         self.uav_inst.state = self.state_inst.return_to_launch
-                    elif self.err_estimation.altitude_m < 0.7: #Target not detected but low enough to land
+                    elif self.err_estimation.altitude_m < 0.7 and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but low enough to land
+
                         self.uav_inst.state = self.state_inst.land
-                    else:
+                    elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2:
                         self.slight_ascend()
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
 
@@ -580,6 +562,15 @@ class main():
                         mode = self.set_mode(custom_mode='AUTO.LAND')
                         if mode.mode_sent:
                             rospy.loginfo_once("Vehicle is now landing.")
+                
+                elif self.uav_inst.state == self.state_inst.return_to_launch:
+                    # For now just loiter no rtl
+                    rospy.loginfo("Timeout. Loitering")
+                    if self.px4_state.mode != 'AUTO.LOITER':    
+                        mode = self.set_mode(custom_mode='AUTO.LOITER')
+                        if mode.mode_sent:
+                            rospy.loginfo_once("Vehicle is loitering and waiting (timeout)")
+
                 
                 
                 #Set updated_to false to wait for new img

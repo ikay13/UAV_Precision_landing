@@ -89,8 +89,6 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
                     #print("Ratio: ", ratio_big_small)
                     #print("big_c: ", big_c, " small_c: ", small_c)
                     circles.append(np.concatenate(([big_c], [small_c]), axis=0))
-                    print("Measured radii big and small: ", big_c, small_c)
-                    print("Expected radii big and small: ", radius_big_pixel, radius_small_pixel)
                     #print("match")
                     break
         if len(circles) > 0:

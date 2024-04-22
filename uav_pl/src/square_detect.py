@@ -84,15 +84,17 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size
     if len(approx_poly) != 4:
         print("len(approx_poly): ", len(approx_poly))
         return False # Not 4 corners
-    
-    expected_size = calculate_size_in_px(altitude=altitude, size_object_m=size_square, cam_hfov=cam_hfov, image_width=image_width_px)
-    expexted_area = expected_size**2
-    tolerance = 1
-    min_area = expexted_area * (1-tolerance)
-    max_area = expexted_area * (1+tolerance)
+    tolerance = 3 #Tolerance in meters (+/-)
+    altitude_with_tol = [altitude+tolerance, altitude-tolerance]
+    expected_sizes = []
+    expected_sizes.append(calculate_size_in_px(altitude=altitude_with_tol[0], size_object_m=size_square, cam_hfov=cam_hfov, image_width=image_width_px))
+    expected_sizes.append(calculate_size_in_px(altitude=altitude_with_tol[1], size_object_m=size_square, cam_hfov=cam_hfov, image_width=image_width_px))
+
+    min_area = expected_sizes[0]**2
+    max_area = expected_sizes[1]**2
 
     if not (min_area < cv.contourArea(cnt) < max_area):
-        print("expte_area: ", expexted_area, "contourArea: ", cv.contourArea(cnt))
+        print("min_area: ", min_area, "max_area", max_area, "contourArea: ", cv.contourArea(cnt))
         return False # Not the right size
     
 
@@ -194,7 +196,7 @@ def findContours(threshold_img, grayscale_img, altitude, size_square, cam_hfov):
     return approx #return the contour of the square or none if no square is found
 
 def calculate_error_image (square_contour, img_width, img_height): #return error relative to the center of the image
-    """Calculate the error in the x and y direction of the center of the square relative to the center of the image"""
+    """Calculate the error in the x and y direction of the center of the square relative to the center of the image. X is ranging from -1 to 1 and y from -0.75 to 0.75"""
     if square_contour is None:
         return None
     
@@ -236,7 +238,7 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
         return None, None, threshold_img
 
 
-def calculate_target_error(errors_xy):
+def calculate_target_error(errors_xy, frame):
     """Calculate the mean error in the x and y direction from a list of errors. If the data is bimodal, return the two most likely targets, else return the mean error."""
     calc_error_xy = []
     for error_set in errors_xy:
@@ -254,8 +256,8 @@ def calculate_target_error(errors_xy):
     if pval_x < 0.05 or pval_y < 0.05 and len(calc_error_xy) > 1:
         #Data is bimodal
         #Seperate data into a AxA grid. A is the number of bins (length of the array)
-        num_bins = len(calc_error_xy)//4
-        num_occurences_xy = [[0 for _ in range(len(calc_error_xy))] for _ in range(num_bins+1)]
+        num_bins = len(calc_error_xy)
+        num_occurences_xy = [[0 for _ in range(num_bins+1)] for _ in range(num_bins+1)]
         bins_x = np.linspace(min(x_values), max(x_values), num_bins)
         bins_y = np.linspace(min(y_values), max(y_values), num_bins)
         for coord in calc_error_xy:
@@ -268,52 +270,74 @@ def calculate_target_error(errors_xy):
         adjusted_arr = [[int(value/max_value*255) for value in sub_arr] for sub_arr in num_occurences_xy]
         image_of_occurences = np.asarray(adjusted_arr, dtype=np.uint8) 
         #Blur the image to connect single close peaks
-        kernel_size = len(calc_error_xy)//30 if len(calc_error_xy)//30 % 2 == 1 else len(calc_error_xy)//30+1
+        kernel_size = num_bins//10 if num_bins//10%2 == 1 else num_bins//10+1 #Kernel size must be odd
         blurred_image = cv.GaussianBlur(image_of_occurences, (kernel_size,kernel_size), 0)
         new_max = max(max(sub_arr) for sub_arr in blurred_image)
-        _, thr_img = cv.threshold(blurred_image, new_max*0.5, 255, cv.THRESH_BINARY)
+        _, thr_img = cv.threshold(blurred_image, new_max*0.2, 255, cv.THRESH_BINARY)
+        # copied_img = thr_img.copy()
+        # copied_img = cv.cvtColor(copied_img, cv.COLOR_GRAY2BGR)
+        # cv.imwrite("thresholded_img.png", thr_img)
+        # cv.imwrite("blurred_img.png", blurred_image)
+        # cv.imwrite("image_of_occurences.png", image_of_occurences)
+        # print("max_value: ", max_value, "")
         
         #Find the contours of the image and get the center of the two peaks
         cnt = cv.findContours(thr_img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        # cv.drawContours(copied_img, cnt[0], -1, (0, 255, 0), 2)#Draw contours
+        # cv.imwrite("contoursbefore.png", copied_img)
+        # print("contours: ", cnt)
         cnt = cnt[0] if len(cnt) == 2 else cnt[1]
+        # print("contours after selection: ", cnt)
+        # copied_img = thr_img.copy()
+        # copied_img = cv.cvtColor(copied_img, cv.COLOR_GRAY2BGR)
+        # cv.drawContours(copied_img, cnt, -1, (0, 255, 0), 2)#Draw contours
+        # cv.imwrite("contoursafter.png", copied_img)
 
         if len(cnt) < 2: #Only one peak
+            print("Not bimodal (only one peak Nr1)")
             x_mean = np.mean(x_values)
             y_mean = np.mean(y_values)
             return (x_mean, y_mean), False
         
-        real_centers_m = []
+        real_centers = []
+        # copied_img = thr_img.copy()
+        # copied_img = cv.cvtColor(copied_img, cv.COLOR_GRAY2BGR)
         for c in cnt if len(cnt) < 3 else cnt[0:1]:
             M = cv.moments(c)
-            if M['m00'] != 0:
-                cx = int(M['m10']/M['m00'])
-                cy = int(M['m01']/M['m00'])
-                real_centers_m.append((bins_x[cx], bins_y[cy]))
+            cx = int(M['m10']/(M['m00']+1e-5))
+            cy = int(M['m01']/(M['m00']+1e-5))
+            real_centers.append((bins_x[cx], bins_y[cy]))
+            # cv.circle(copied_img, (cx, cy), 5, (0, 0, 255), -1)
+        # print("real_centers: ", real_centers)
+        # cv.imwrite("centers.png", copied_img)
         
-        if len(real_centers_m) < 2: #Only one peak
+        if len(real_centers) < 2: #Only one peak
+            print("Not bimodal (only one peak)")
             x_mean = np.mean(x_values)
             y_mean = np.mean(y_values)
             return (x_mean, y_mean), False
         
+
+
         #Check if the two peaks are too close together to be two seperate platforms
-        distance = np.linalg.norm(np.array(real_centers_m[0]) - np.array(real_centers_m[1]))
-        min_distance = 0.5
+        distance = np.linalg.norm(np.array(real_centers[0]) - np.array(real_centers[1]))
+        min_distance = 0.5 #This is just realtive to the image. The two peaks should be at least 0.5 of the image apart
         if distance < min_distance:
-            #The two peaks are too close together, they should be at least 0.5m apart
+            #The two peaks are too close together, they should be at least half the image apart
             print("Not bimodal (peaks too close)")
-            dist_to_target_1 = np.linalg.norm(np.array(real_centers_m[0]) - np.array([0,0]))
-            dist_to_target_2 = np.linalg.norm(np.array(real_centers_m[1]) - np.array([0,0]))
+            dist_to_target_1 = np.linalg.norm(np.array(real_centers[0]) - np.array([0,0]))
+            dist_to_target_2 = np.linalg.norm(np.array(real_centers[1]) - np.array([0,0]))
             if dist_to_target_2<dist_to_target_1:
-                return real_centers_m[1], False
-            return real_centers_m[0], False
+                return real_centers[1], False
+            return real_centers[0], False
         else:
             print("Data is bimodal")
-            dist_to_target_1 = np.linalg.norm(np.array(real_centers_m[0]) - np.array([0,0]))
-            dist_to_target_2 = np.linalg.norm(np.array(real_centers_m[1]) - np.array([0,0]))
+            dist_to_target_1 = np.linalg.norm(np.array(real_centers[0]) - np.array([0,0]))
+            dist_to_target_2 = np.linalg.norm(np.array(real_centers[1]) - np.array([0,0]))
             if dist_to_target_2<dist_to_target_1:
-                real_centers_m[0], real_centers_m[1] = real_centers_m[1], real_centers_m[0]#The closer target should be first
+                real_centers[0], real_centers[1] = real_centers[1], real_centers[0]#The closer target should be first
 
-            return real_centers_m, True
+            return real_centers, True
 
 
 
@@ -419,7 +443,7 @@ def check_for_time(frame, altitude,duration,ratio_detected, size_square, cam_hfo
 
     if perf_counter() - check_for_time.start_time > duration: #If 3 seconds have passed, check if a square was detected in more than half of the frames
         if len(check_for_time.errors_xy )/(check_for_time.not_detected_cnt+1e-5) > ratio_detected: #If more than half of the frames have a square, get target error
-            calculated_target_err, is_bimodal =  calculate_target_error(check_for_time.errors_xy)
+            calculated_target_err, is_bimodal =  calculate_target_error(check_for_time.errors_xy, frame)
             return calculated_target_err, is_bimodal, threshold_img
         else:
             return False, False, threshold_img
