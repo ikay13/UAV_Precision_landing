@@ -3,10 +3,12 @@
 from square_detect import detect_square_main, check_for_time
 from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate, transform_ground_to_img_xy
 from hogh_circles import concentric_circles, small_circle
+from tin_detection import tin_detection_for_time, tins_error_bin_mode
 from debugging_code import display_error_and_text
 import navigate_pixhawk
 import cv2 as cv
 import numpy as np
+from enum import Enum
 from math import atan2, pi, sqrt, exp
 import time
 
