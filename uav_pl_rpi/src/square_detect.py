@@ -84,7 +84,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size
     if len(approx_poly) != 4:
         print("len(approx_poly): ", len(approx_poly))
         return False # Not 4 corners
-    tolerance = 3 #Tolerance in meters (+/-)
+    tolerance = 3.5 #Tolerance in meters (+/-)
     altitude_with_tol = [altitude+tolerance, altitude-tolerance]
     expected_sizes = []
     expected_sizes.append(calculate_size_in_px(altitude=altitude_with_tol[0], size_object_m=size_square, cam_hfov=cam_hfov, image_width=image_width_px))
@@ -111,7 +111,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size
     # Ratio of longest line length to the difference between the longest and shortest line length
     lineDiffRatio = (max_line_length - min_line_length) / max_line_length 
 
-    if lineDiffRatio > 0.15:
+    if lineDiffRatio > 0.2:
         print("lineDiffRatio: ", lineDiffRatio)
         return False # Line lengths are too different
     

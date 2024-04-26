@@ -3,7 +3,6 @@
 from square_detect import detect_square_main, check_for_time
 from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate, transform_ground_to_img_xy
 from hogh_circles import concentric_circles, small_circle
-from tin_detection import tin_detection_for_time, tins_error_bin_mode
 from debugging_code import display_error_and_text
 import navigate_pixhawk
 import cv2 as cv
@@ -210,7 +209,7 @@ class main():
         self.current_pose = None  # Current pose variable
         self.angle = (0, 0, 0)  # Angle variable
         self.initialization_time = rospy.Time.now().to_sec()  # Initialization time
-        self.takeoff_time = 0  # Takeoff time
+        self.armed_time = None
         self.offboard_switch_time = 0  # Offboard switch time
         self.loiter_switch_time = 0  # Loiter switch time
         self.waypoint_pushed = False  # Flag to indicate if waypoint is pushed
@@ -219,14 +218,18 @@ class main():
         self.descend_altitude = None  # Descend altitude variable
         self.ascending_start_time = None  # Ascending start time
         self.ascended_by_m = 0  # Ascended by meters
+        self.takeoff_pos = [0, 0, 0]  # Takeoff position in m (NED)
+        self.manual_control = False
+        self.takeoff_reached_time = None
 
         #####Subscribers#####
         # Subscribe to the downward depth camera image topic
-        rospy.Subscriber("/iris_downward_depth_camera/camera/rgb/image_raw/compressed", CompressedImage, callback=self.camera)
+        rospy.Subscriber("/rpi/rgb/image_raw/compressed", CompressedImage, callback=self.camera)
         # Subscribe to the local position topic
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, callback=self.current_position)
         # Subscribe to the MAVROS state topic
         rospy.Subscriber('mavros/state', State, callback=self.monitor_state)
+        rospy.Subscriber('mavros/rc/in', RCIn, callback=self.rc_callback)
         
         #####Waiting for services#####
         # Wait for the set_mode service to become available
@@ -235,20 +238,25 @@ class main():
         # Wait for the arm service to become available
         rospy.wait_for_service('/mavros/cmd/arming')
         self.arm = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
+
         
         #####Publishers#####
         # Create a publisher for the waypoint pose topic
         self.waypoint_pose_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=3)
         # Create a publisher for the landing camera image topic
-        self.img_pub = rospy.Publisher("/iris_downward_depth_camera/camera/landing/rgb/image_raw/compressed", CompressedImage, queue_size=100)
+        self.img_pub = rospy.Publisher("/rpi/rgb/image_raw/landing/rgb/image_raw/compressed", CompressedImage, queue_size=3)
         # Create a publisher for the velocity topic
         self.velocity_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=3)
         
         # Define the waypoints for the UAV to fly to (relative to map frame)
         # self.waypoints = [[-10, 40, 10.0],
         #           [4, 30.0, 10.0]]
-        self.waypoints = [[-11, 36, 10.0],
-                  [4, 30.0, 10.0]]
+        # self.waypoints = [[-11, 36, 10.0],
+        #           [4, 30.0, 10.0]]
+        self.waypoints = [[2, 0, 6],
+                  [2, 0, 6]]
+        self.waypoints_adjusted = False #Set this to true if waypoints have been adjusted for takeoff position
+        
 
 
         # Set the frame ID and timestamp for the waypoint pose
@@ -256,7 +264,7 @@ class main():
         self.waypoint_pose.header.stamp = rospy.Time.now()
 
         # Calculate the orientation based on the angle variable (always point north)
-        a = (np.pi/2 - self.angle[2])
+        a = (np.pi/2)
         self.theta = np.arctan2(np.sin(a),np.cos(a))
         self.orientation = quaternion_from_euler(self.angle[0],self.angle[1],self.theta)
 
@@ -273,7 +281,7 @@ class main():
         check_for_time.start_time = None
 
         # Run the landing process in a loop until rospy is shutdown
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and not self.manual_control:
             self.landing()  # Call the landing function
             self.rate.sleep()  # Sleep to maintain the desired loop frequency
 
@@ -281,9 +289,9 @@ class main():
         """Callback function for the current position subscriber updating vehicle position"""
         # Update current pose and altitude
         self.current_pose = msg
-        self.uav_inst.altitude = self.current_pose.pose.position.z
+        self.uav_inst.altitude = self.current_pose.pose.position.z - self.takeoff_pos[2]
         # Calculate Euler angles from quaternion
-        self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
+        # self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
 
     def camera(self,msg):
         """Callback function for the camera subscriber updating the image"""
@@ -300,6 +308,14 @@ class main():
         # Update the PX4 state
         self.px4_state = msg
 
+    def rc_callback(self,msg):
+        # Check if the RC switch is in the "Position control" position (Means manual control)
+        if msg.channels[4] < 1300:
+            # Arm the UAV
+            rospy.loginfo_once("Vehicle is in position mode (RC switch). Shutting down script")
+            self.manual_control = True
+            rospy.signal_shutdown("Manual control activated")
+
     def guided_descend(self, is_low_altitude=False):
             """Guided descend function to align the UAV with the target and descend to the target position"""
             self.ascended_by_m = 0
@@ -313,9 +329,10 @@ class main():
             theta_vertical = np.arctan2(deltaS, self.err_estimation.altitude_m_avg) #Angle to the target in relative to straight down plane
 
             # Calculate the linear velocity based on the distance
-            gain = 0.3
+            gain = 0.15
             self.linear_vel = gain * deltaS
-            self.linear_vel = 0.5 if self.linear_vel > 0.5 else self.linear_vel #Avoid going too fast to be safe
+            self.linear_vel = 0.3 if self.linear_vel > 0.3 else self.linear_vel #Avoid going too fast to be safe was 0.5
+            ##################################
 
             # Publish the correction position if the distance is greater than 0.2
             if theta_vertical > 10*np.pi/180: #Not well aligned in z (more than 10 deg off)
@@ -335,10 +352,11 @@ class main():
                 self.final_vel.twist.linear.x = self.linear_vel * np.cos(theta_horizontal)
                 self.final_vel.twist.linear.y = self.linear_vel * np.sin(theta_horizontal)
                 if is_low_altitude:
-                    self.final_vel.twist.linear.z = -0.2
+                    self.final_vel.twist.linear.z = -0.1 ##0.2
                 else:
-                    self.final_vel.twist.linear.z = -0.5 #Descend with 0.5 m/s
+                    self.final_vel.twist.linear.z = -0.3 #Descend with 0.5 m/s
                 # Publish the velocity message
+            #rospy.loginfo("publishing guided descend")
             self.velocity_pub.publish(self.final_vel)
 
     def slight_ascend(self):
@@ -351,32 +369,52 @@ class main():
         self.final_vel.twist.linear.x = 0
         self.final_vel.twist.linear.y = 0
         self.final_vel.twist.linear.z = 0.1 #Ascend with 0.1 m/s
+        
+        #rospy.loginfo("publishing slight ascend")
         self.velocity_pub.publish(self.final_vel)
         #Calculate how much the UAV has ascended by based on the velocity and time elapsed
         self.ascended_by_m = (rospy.Time.now().to_sec() - self.ascending_start_time) * self.final_vel.twist.linear.z
         
 
 
-    def landing(self):
-                
+    def landing(self):    
         if self.current_pose != None and self.waypoint_pose != None: #Check if the current pose and waypoint pose are not None
             # Check the current state of the UAV
             if self.uav_inst.state == self.state_inst.initial and (rospy.Time.now().to_sec() - self.initialization_time) > 2:
                 # Arm the UAV manually
                 rospy.loginfo_once("Vehicle is ready to armed...")
-                #save the time of takeoff
-                self.takeoff_time = rospy.Time.now().to_sec() - self.takeoff_time
-                if self.px4_state.armed and self.takeoff_time > 3:
-                    if self.px4_state.mode != 'AUTO.TAKEOFF':
-                        #Make sure the vehicle is in takeoff mode
+                if self.px4_state.armed:
+                    rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z))
+                    if self.armed_time is None:
+                        #Set this time only the first time the vehicle is armed
+                        self.armed_time = rospy.Time.now().to_sec()
+
+                    if self.px4_state.mode == 'AUTO.LOITER':
+                        #If the vehicle is at the desired altitude and correct mode, switch to fly to waypoint mode
+                        rospy.loginfo_once("Takeoff alt reached")
+                        # if self.takeoff_reached_time is None:
+                        #     self.takeoff_reached_time = rospy.Time.now().to_sec()
+                        # elif self.takeoff_reached_time - rospy.Time.now().to_sec() > 2:
+                            # rospy.loginfo("Switching to waypoint")
+                        self.uav_inst.state = self.state_inst.fly_to_waypoint
+                        self.takeoff_reached_time = rospy.Time.now().to_sec()
+                    elif self.px4_state.mode != 'AUTO.TAKEOFF' and (rospy.Time.now().to_sec() - self.armed_time) > 2:
+                        #Make sure the vehicle is in takeoff mode (exept is already switched to loiter)
+                        self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
+                        if self.waypoints_adjusted == False:
+                            #Adjust the waypoints for the takeoff position
+                            for waypoint in self.waypoints:
+                                waypoint[0] = waypoint[0] + self.takeoff_pos[0]
+                                waypoint[1] = waypoint[1] + self.takeoff_pos[1]
+                                waypoint[2] = waypoint[2] + self.takeoff_pos[2]
+                            self.waypoints_adjusted = True
                         mode = self.set_mode(custom_mode='AUTO.TAKEOFF')
                         if mode.mode_sent:
                             rospy.loginfo_once("Vehicle is taking off.")
-                    if 2 <= self.current_pose.pose.position.z and self.px4_state.mode == 'AUTO.LOITER':
-                         #If the vehicle is at the desired altitude and correct mode, switch to fly to waypoint mode
-                         self.uav_inst.state = self.state_inst.fly_to_waypoint
+                    
 
-            elif self.uav_inst.state == self.state_inst.fly_to_waypoint:
+            elif self.uav_inst.state == self.state_inst.fly_to_waypoint and (rospy.Time.now().to_sec()-self.takeoff_reached_time)>2:
+                rospy.loginfo_once("Flying to waypoint")
                 if not self.waypoint_pushed:
                     #Push the waypoint to the UAV if not already done so
                     if len(self.waypoints) != 0:  
@@ -389,11 +427,14 @@ class main():
                         pass
                 
                 # Publish the waypoint pose
+                #rospy.loginfo("publishing towaypoint")
                 self.waypoint_pose_pub.publish(self.waypoint_pose)
                 
                 # Calculate the delta x and delta y between the current pose and the waypoint pose
                 delta_x = (self.waypoint_pose.pose.position.x - self.current_pose.pose.position.x)
                 delta_y = (self.waypoint_pose.pose.position.y - self.current_pose.pose.position.y)
+                delta_z = (self.waypoint_pose.pose.position.z - self.current_pose.pose.position.z)
+                rospy.loginfo_throttle(1, "Delta x: {}, Delta y: {}, Delta z: {}".format(delta_x, delta_y, delta_z))
                 
                 # Calculate the radius of proximity
                 self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
@@ -415,8 +456,8 @@ class main():
                                                   delta_y, self.waypoint_pose.pose.position.z))
                             rospy.loginfo("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
                 
-                # Check if the radius of proximity is less than or equal to 0.2
-                if self.radius_of_proximity <= 0.2:
+                # Check if the radius of proximity is less than or equal to 0.3
+                if self.radius_of_proximity <= 0.3: ########################
                     # if self.px4_state.mode != 'AUTO.LOITER':    
                     # print("setting to loiter mode")
                     # # Switch the vehicle to AUTO.LOITER mode
@@ -424,11 +465,14 @@ class main():
                     # if mode.mode_sent:
                     #         rospy.loginfo("Vehicle is now in LOITER mode.")
                     self.target_reached_time = rospy.Time.now().to_sec()
+                    rospy.loginfo_once("Reached the waypoint")
                     self.uav_inst.state = self.state_inst.detect_square
                    
-            
             if self.updated_img:    #Only run if new image is available         
                 if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
+                    rospy.loginfo_throttle(3, "Detecting square")
+                    #rospy.loginfo("publishing detect")
+                    self.waypoint_pose_pub.publish(self.waypoint_pose)
                     # Check if square is detected within a certain duration
                     square_detected_err, is_bimodal, threshold_img = check_for_time(frame=self.cv_image, altitude=self.uav_inst.altitude, duration=2,
                                                                                     ratio_detected=0.5, size_square=self.target_parameters_obj.size_square, cam_hfov=self.uav_inst.cam_hfov)
@@ -442,10 +486,10 @@ class main():
                         pass  # Time not over yet
                     elif square_detected_err is False:
                         # Square not detected, switch to flying to next waypoint
-                        self.uav_inst.state = self.state_inst.fly_to_waypoint
-                        self.waypoint_pushed = False
-                        self.offboard_switch_time = rospy.Time.now().to_sec()
-                        check_for_time.start_time = None
+                        #self.uav_inst.state = self.state_inst.fly_to_waypoint
+                        # self.waypoint_pushed = False
+                        # self.offboard_switch_time = rospy.Time.now().to_sec()
+                        # check_for_time.start_time = None
                         rospy.loginfo("Square not detected. Flying to next waypoint.")
                     else:  # Done and detected
                         if is_bimodal:
@@ -479,13 +523,16 @@ class main():
                         else:
                             # If error is too far, switch to flying to next waypoint
                             rospy.loginfo("Target detected but too far away. Flying closer. Distance: " + str(error_in_m) + "m")
-                            self.uav_inst.state = self.state_inst.fly_to_waypoint
+                            #self.uav_inst.state = self.state_inst.fly_to_waypoint
                             self.waypoint_pushed = False
                             self.offboard_switch_time = rospy.Time.now().to_sec()
+                elif self.uav_inst.state == self.state_inst.detect_square:
+                    #make sure it does not timeout
+                    self.waypoint_pose_pub.publish(self.waypoint_pose)
 
-                        check_for_time.start_time = None
 
                 elif self.uav_inst.state == self.state_inst.descend_square:
+                    rospy.loginfo_throttle(3, "Descend square")
                     if self.err_estimation.altitude_m_avg is not None: #Make sure altitude is actually set
                         # Detect the square and update errors, altitude and the threshold image
                         current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
