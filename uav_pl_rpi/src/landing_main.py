@@ -8,7 +8,7 @@ import navigate_pixhawk
 import cv2 as cv
 import numpy as np
 from enum import Enum
-from math import atan2, pi, sqrt, exp
+from math import atan2, pi, sqrt, exp, cos, sin
 import time
 
 
@@ -73,11 +73,14 @@ class error_estimation:
         self.p_value = 0.95
         self.time_last_detection = None
 
-    def update_errors(self, x_img, y_img, altitude_m, cam_fov_hv, image_size):
+    def update_errors(self, x_img, y_img, altitude_m, cam_fov_hv, image_size, heading):
         """Update the errors in the image and ground plane and the target lat and lon"""     
         #Assign current errors
-        self.x_img = x_img
-        self.y_img = y_img
+        #take rotation of UAV into account (transformed)
+        x_transformed = cos(heading)*x_img - sin(heading)*y_img
+        y_transformed = sin(heading)*x_img + cos(heading)*y_img
+        self.x_img = x_transformed
+        self.y_img = y_transformed
         self.altitude_m = altitude_m
         #Calculate the errors in the ground plane (dependent on altitude of UAV)
         error_ground_xy = transform_to_ground_xy([x_img, y_img],altitude_m, cam_fov_hv)
@@ -85,7 +88,7 @@ class error_estimation:
         self.y_m = error_ground_xy[1]
 
         #Keep list a maximum of self.list_length elements
-        if len(self.x_m_filt) == self.list_length:
+        if len(self.x_m_filt) >= self.list_length:
             self.x_m_filt.pop(0)
             self.y_m_filt.pop(0)
             self.err_distances_filt.pop(0)
@@ -98,6 +101,8 @@ class error_estimation:
         self.err_distances_filt.append(sqrt(self.x_m**2 + self.y_m**2 + self.altitude_m**2))
         self.err_times_filt.append(time.time())
         self.altitude_m_filt.append(altitude_m)
+
+        #rospy.loginfo("All alt_m_filt: {}".format(self.altitude_m_filt))
         
         #Reset average values
         self.x_m_avg = 0
@@ -120,6 +125,7 @@ class error_estimation:
         self.x_m_avg = self.x_m_avg/weight_total
         self.y_m_avg = self.y_m_avg/weight_total
         self.altitude_m_avg = self.altitude_m_avg/weight_total
+        #rospy.loginfo("Altitude after filtering: {}".format(self.altitude_m_avg))
 
         #Calculate the target lat and lon using the avg value
         # self.target_lat, self.target_lon = calculate_new_coordinate(uav_lat, uav_lon, [self.x_m_avg, self.y_m_avg], heading)
@@ -170,8 +176,8 @@ class target_parameters:
         #Change these values if the size of the target changes
         self.diameter_big = 0.84
         self.diameter_small = 0.29
-        self.canny_max_threshold = 45 #param1 of hough circle transform
-        self.hough_circle_detect_thr = 40 #param2 of hough circle transform
+        self.canny_max_threshold = 40 #param1 of hough circle transform
+        self.hough_circle_detect_thr = 35 #param2 of hough circle transform
         self.factor = self.diameter_big/self.diameter_small #How much bigger the big circle is compared to the small circle (diameter)
         self.tin_diameter = 0.084 #Diameter of the tins in meters
         self.size_square = 2 #Size of the square in meters
@@ -253,8 +259,8 @@ class main():
         #           [4, 30.0, 10.0]]
         # self.waypoints = [[-11, 36, 10.0],
         #           [4, 30.0, 10.0]]
-        self.waypoints = [[2, 0, 6],
-                  [2, 0, 6]]
+        self.waypoints = [[-2.5, 0, 7],
+                  [-2.5, 0, 7]]
         self.waypoints_adjusted = False #Set this to true if waypoints have been adjusted for takeoff position
         
 
@@ -291,16 +297,17 @@ class main():
         self.current_pose = msg
         self.uav_inst.altitude = self.current_pose.pose.position.z - self.takeoff_pos[2]
         # Calculate Euler angles from quaternion
-        # self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
+        self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
 
     def camera(self,msg):
         """Callback function for the camera subscriber updating the image"""
+        ###using updated image makes sure that the image being used is not overwritten
         # Convert compressed image message to OpenCV format
-        self.cv_image = self.Bridge.compressed_imgmsg_to_cv2(msg,"bgr8")
+        self.cv_image_updated = self.Bridge.compressed_imgmsg_to_cv2(msg,"bgr8")
         # Resize the image to a specific size
-        self.cv_image = cv.resize(self.cv_image, (640, 480))
+        self.cv_image_updated = cv.resize(self.cv_image_updated, (640, 480))
         # Update the image size attribute
-        self.uav_inst.image_size = (self.cv_image.shape[1], self.cv_image.shape[0])
+        self.uav_inst.image_size = (self.cv_image_updated.shape[1], self.cv_image_updated.shape[0])
         # Set the flag to indicate that the image has been updated
         self.updated_img = True
 
@@ -329,19 +336,24 @@ class main():
             theta_vertical = np.arctan2(deltaS, self.err_estimation.altitude_m_avg) #Angle to the target in relative to straight down plane
 
             # Calculate the linear velocity based on the distance
-            gain = 0.15
+            gain = 0.6 #1 is unstable maybe possible to be slightly higher though
             self.linear_vel = gain * deltaS
-            self.linear_vel = 0.3 if self.linear_vel > 0.3 else self.linear_vel #Avoid going too fast to be safe was 0.5
+            self.linear_vel = 0.8 if self.linear_vel > 0.8 else self.linear_vel #Avoid going too fast to be safe was 0.5
             ##################################
+            desired_heading = np.pi/2
+            current_heading = self.angle[2]
+            gain_heading = 0.2
+            angular_z_vel = gain_heading*(desired_heading-current_heading)
+            self.final_vel.twist.angular.z = angular_z_vel
 
             # Publish the correction position if the distance is greater than 0.2
-            if theta_vertical > 10*np.pi/180: #Not well aligned in z (more than 10 deg off)
+            if theta_vertical > 8*np.pi/180: #Not well aligned in z (more than 10 deg off)
                 rospy.loginfo("Aligning")
                 
                 # Set the linear velocity components in the x and y directions
                 self.final_vel.header.stamp = rospy.Time.now()
-                self.final_vel.twist.linear.x = self.linear_vel * np.cos(theta_horizontal)
-                self.final_vel.twist.linear.y = self.linear_vel * np.sin(theta_horizontal)
+                self.final_vel.twist.linear.x = -self.linear_vel * np.cos(theta_horizontal)
+                self.final_vel.twist.linear.y = -self.linear_vel * np.sin(theta_horizontal)
                 self.final_vel.twist.linear.z = 0
                 # Publish the velocity message
                 self.velocity_pub.publish(self.final_vel)
@@ -349,12 +361,12 @@ class main():
                 rospy.loginfo("Descending")
                 # Set the linear velocity components in the x and y directions
                 self.final_vel.header.stamp = rospy.Time.now()
-                self.final_vel.twist.linear.x = self.linear_vel * np.cos(theta_horizontal)
-                self.final_vel.twist.linear.y = self.linear_vel * np.sin(theta_horizontal)
+                self.final_vel.twist.linear.x = -self.linear_vel * np.cos(theta_horizontal)
+                self.final_vel.twist.linear.y = -self.linear_vel * np.sin(theta_horizontal)
                 if is_low_altitude:
                     self.final_vel.twist.linear.z = -0.1 ##0.2
                 else:
-                    self.final_vel.twist.linear.z = -0.3 #Descend with 0.5 m/s
+                    self.final_vel.twist.linear.z = -0.2 #Descend with 0.5 m/s
                 # Publish the velocity message
             #rospy.loginfo("publishing guided descend")
             self.velocity_pub.publish(self.final_vel)
@@ -384,7 +396,7 @@ class main():
                 # Arm the UAV manually
                 rospy.loginfo_once("Vehicle is ready to armed...")
                 if self.px4_state.armed:
-                    rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z))
+                    rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z-self.takeoff_pos[2] ))
                     if self.armed_time is None:
                         #Set this time only the first time the vehicle is armed
                         self.armed_time = rospy.Time.now().to_sec()
@@ -437,7 +449,7 @@ class main():
                 rospy.loginfo_throttle(1, "Delta x: {}, Delta y: {}, Delta z: {}".format(delta_x, delta_y, delta_z))
                 
                 # Calculate the radius of proximity
-                self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2)
+                self.radius_of_proximity = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
                 
                 # Calculate the time since the offboard switch
                 time_passed_offboard = rospy.Time.now().to_sec() - self.offboard_switch_time
@@ -456,8 +468,8 @@ class main():
                                                   delta_y, self.waypoint_pose.pose.position.z))
                             rospy.loginfo("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
                 
-                # Check if the radius of proximity is less than or equal to 0.3
-                if self.radius_of_proximity <= 0.3: ########################
+                # Check if the radius of proximity is less than or equal to 0.4
+                if self.radius_of_proximity <= 0.4: ########################
                     # if self.px4_state.mode != 'AUTO.LOITER':    
                     # print("setting to loiter mode")
                     # # Switch the vehicle to AUTO.LOITER mode
@@ -468,7 +480,8 @@ class main():
                     rospy.loginfo_once("Reached the waypoint")
                     self.uav_inst.state = self.state_inst.detect_square
                    
-            if self.updated_img:    #Only run if new image is available         
+            if self.updated_img:    #Only run if new image is available   
+                self.cv_image = self.cv_image_updated #Update image to the new image      
                 if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
                     rospy.loginfo_throttle(3, "Detecting square")
                     #rospy.loginfo("publishing detect")
@@ -497,20 +510,22 @@ class main():
                             # If multiple squares are detected, update errors for each square
                             for idx in range(2):
                                 current_err = square_detected_err[idx-1]  # Reverse order so that closer waypoint is last in list
-                                self.err_estimation.update_errors(current_err[0], current_err[1], self.current_pose.pose.position.z, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                                alt = self.current_pose.pose.position.z - self.takeoff_pos[2]
+                                self.err_estimation.update_errors(current_err[0], current_err[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size, self.angle[2])
                                 self.err_estimation.clear_errors()  # Clear the errors so that the average is not used (two different platforms)
 
                                 # Append waypoints with updated error estimation
                                 self.waypoints.append([self.current_pose.pose.position.x + self.err_estimation.x_m,
                                                        self.current_pose.pose.position.y + self.err_estimation.y_m,
-                                                       10])
+                                                       7+self.takeoff_pos[2]])
 
                         else:
                             # If only one square is detected, update errors and append waypoint
-                            self.err_estimation.update_errors(square_detected_err[0], square_detected_err[1], self.current_pose.pose.position.z, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                            alt = self.current_pose.pose.position.z - self.takeoff_pos[2]
+                            self.err_estimation.update_errors(square_detected_err[0], square_detected_err[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size, self.angle[2])
                             self.waypoints.append([self.current_pose.pose.position.x + self.err_estimation.x_m,
                                                    self.current_pose.pose.position.y + self.err_estimation.y_m,
-                                                   10])
+                                                   7+self.takeoff_pos[2]])
 
                         error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
                         print("current error: ", error_in_m)
@@ -518,7 +533,7 @@ class main():
                             # If error is within threshold, switch to descending state
                             self.uav_inst.state = self.state_inst.descend_square
                             self.waypoints.pop()
-                            self.err_estimation.altitude_m_avg = self.current_pose.pose.position.z
+                            self.err_estimation.altitude_m_avg = self.current_pose.pose.position.z - self.takeoff_pos[2]
                             rospy.loginfo("Target detected and now descending")
                         else:
                             # If error is too far, switch to flying to next waypoint
@@ -538,11 +553,12 @@ class main():
                         current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
                         error_xy, self.descend_altitude, threshold_img = detect_square_main(self.cv_image, current_alt, self.target_parameters_obj.size_square, self.uav_inst.cam_hfov)
                         # rospy.loginfo(self.current_pose.pose.position.z)
+                        rospy.loginfo("Atl from img sqare: {}".format(self.descend_altitude))
                         # Merge the threshold image with the original image for debugging
                         debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(threshold_img, cv.COLOR_GRAY2BGR)])
                         if error_xy != None: #Target detected
                             # Update the errors using the weighted running average filter
-                            self.err_estimation.update_errors(error_xy[0][0], error_xy[0][1], self.descend_altitude, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                            self.err_estimation.update_errors(error_xy[0][0], error_xy[0][1], self.descend_altitude, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size, self.angle[2])
                             
                             self.guided_descend()
                            
@@ -550,7 +566,7 @@ class main():
                             if self.px4_state.mode != 'OFFBOARD':
                                 mode = self.set_mode(custom_mode='OFFBOARD')
 
-                            if(self.descend_altitude is not None and self.descend_altitude < 4):
+                            if(self.err_estimation.altitude_m_avg != 0 and self.err_estimation.altitude_m_avg < 4):
                                 self.uav_inst.state = self.state_inst.descend_concentric
                                 rospy.loginfo("Descending using concentric circles")
                                     
@@ -575,7 +591,7 @@ class main():
                     alt, error_xy, edges = concentric_circles(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj) 
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
                     if alt is not None: #Target detected
-                        self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                        self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
                         self.guided_descend()
                     elif self.err_estimation.check_for_timeout(): #No target detected for 3s
                         print("Timeout")
@@ -583,7 +599,7 @@ class main():
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                         self.slight_ascend()
 
-                    if self.err_estimation.altitude_m_avg < 2:
+                    if self.err_estimation.altitude_m_avg < 1.4:
                         self.uav_inst.state = self.state_inst.descend_inner_circle
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                     
@@ -591,13 +607,14 @@ class main():
                     current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
                     alt,error_xy, edges = small_circle(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
+
                     if alt is not None:
-                        self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size)
+                        self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
                         self.guided_descend(is_low_altitude=True) #Guided descend but slower
-                    elif self.err_estimation.check_for_timeout() and self.err_estimation.altitude_m > 0.5:
+                    elif self.err_estimation.check_for_timeout() and self.err_estimation.altitude_m_avg > 0.7:
                         print("Timeout")
                         self.uav_inst.state = self.state_inst.return_to_launch
-                    elif self.err_estimation.altitude_m < 0.7 and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but low enough to land
+                    elif self.err_estimation.altitude_m_avg < 0.7 and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but low enough to land
 
                         self.uav_inst.state = self.state_inst.land
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2:

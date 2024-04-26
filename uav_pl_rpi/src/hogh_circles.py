@@ -43,7 +43,7 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
     cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold #Max Thr for canny edge detection
     circleDetectThr = circle_parameters_obj.hough_circle_detect_thr #Threshold for circle detection
     factor = circle_parameters_obj.factor #Factor big circle diameter / small circle diameter
-    tolerance = 0.5     #This is the tolarance the circles are expected to be in
+    tolerance = 1.5     #This is the tolarance the circles are expected to be in
 
     calculated_altitude = None #This is the altitude calculated from the image (As the circel dimensions are known)
 
@@ -53,8 +53,8 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
     rel_size = actual_radius/dist_img_on_ground #This is the size of the bigger circle compared to the overall frame
     radius_big_pixel = rel_size*frame_gray.shape[1] #This is the radius of the bigger circle in pixels
     radius_small_pixel = radius_big_pixel/factor #This is the radius of the smaller circle in pixels
-    radii_big = [int(radius_big_pixel*(1-tolerance)), int(radius_big_pixel*(1+tolerance))] #Min and max radius for the bigger circle
-    radii_small = [int(radius_small_pixel*(1-tolerance)), int(radius_small_pixel*(1+tolerance))] #Min and max radius for the smaller circle
+    radii_big = [int(radius_big_pixel/tolerance), int(radius_big_pixel*tolerance)] #Min and max radius for the bigger circle
+    radii_small = [int(radius_small_pixel/tolerance), int(radius_small_pixel*tolerance)] #Min and max radius for the smaller circle
 
     edges = cv.Canny(blur,0.5*cannyEdgeMaxThr,cannyEdgeMaxThr) #Only for visual representation (hough already does this)
     
@@ -126,10 +126,10 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
 def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     """Detects concentric circles in the image using altitude"""
     ###Parameters
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold #Max Thr for canny edge detection
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr #Threshold for circle detection
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold *1.2#Max Thr for canny edge detection
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*1.2#Threshold for circle detection
     factor = circle_parameters_obj.factor #Factor big circle diameter / small circle diameter
-    tolerance = 0.7     #This is the tolarance the circles are expected to be in
+    tolerance = 1.3     #This is the tolarance the circles are expected to be in
 
     calculated_altitude = None #This is the altitude calculated from the image (As the circel dimensions are known)
 
@@ -138,7 +138,7 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     actual_radius = circle_parameters_obj.diameter_small/2
     rel_size = actual_radius/dist_img_on_ground #This is the size of the circle compared to the overall frame
     radius_small_pixel = rel_size*frame.shape[1] #This is the radius of the smaller circle in pixels
-    radii_small = [int(radius_small_pixel*(1-tolerance)), int(radius_small_pixel*(1+tolerance))] #Min and max radius for the smaller circle
+    radii_small = [int(radius_small_pixel/tolerance), int(radius_small_pixel*tolerance)] #Min and max radius for the smaller circle
 
     frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     blur = cv.medianBlur(frame_gray,3)
@@ -156,12 +156,25 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     
     circles = np.int16(np.around(circles))
     circles = circles[0] #remove redundant dimensions
+
+    # if len(circles) == 2:
+        #check if centers of the circles found align (most likely found the outer and inner circle
+    #Debugging
+    print("circles found: ", circles)
+    for circle in circles:
+        #This is drawn on orignal frame image passed to function and not a copy
+        cv.circle(frame,(circle[0],circle[1]),circle[2],(0,0,0),2)
+        # draw the center of the circle
+        cv.circle(frame,(circle[0],circle[1]),2,(0,0,0),3)
+
+
     
     if len(circles) == 1:
         circle = circles[0]
         actual_radius = circle_parameters_obj.diameter_small/2
         alt = calculate_altitude(length_px=circle[2], cam_hfov=cam_hfov, img_width=frame_gray.shape[1], actual_length=actual_radius)
         calculated_altitude = alt
+        print("Radii expected: {}, Radius found: {}".format(radii_small, circle[2]))
         #print("Altitude: ", alt)
 
         error_xy = calculate_error_image(circles=circles, img_width=frame_gray.shape[1], img_height=frame_gray.shape[0],num_of_circles=1)

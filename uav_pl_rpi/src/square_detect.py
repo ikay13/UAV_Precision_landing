@@ -5,7 +5,7 @@ from time import perf_counter
 from coordinate_transform import calculate_size_in_px, calculate_altitude
 import diptest
 from math import sqrt
-def thresholding(img):
+def thresholding(img,alt):
     """Threshold the image using Otsu's method and apply dilation and erosion to remove noise and close gaps in the landing pad"""
     #img = cv.imread(path_to_image, cv.IMREAD_GRAYSCALE) #read as grayscale
     assert img is not None, "file could not be read, check with os.path.exists()"
@@ -26,6 +26,12 @@ def thresholding(img):
     #Calculate the optimal threshold using Otsu's method (modified to set different threshold value)
     ####Parameter########
     otsu_factor = 50 #a higher value will result in a higher threshold
+    if 5 < alt < 10: #Between 5 and 10m gradually decrease otsu_factor from 50 to 1
+        otsu_factor = 49/5*alt-48
+    elif alt < 5: #below 5 meter normal otsu thresholding
+        otsu_factor = 1
+    else: #Keep factor constant above 10m
+        otsu_factor = 50
     #####################
     Q = hist_norm.cumsum()
     bins = np.arange(256)
@@ -217,7 +223,7 @@ def detect_square_main(frame, altitude, size_square, cam_hfov):
     grayscale_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     # cv.imshow("saturation", saturation)
     # cv.waitKey(1)
-    threshold_img = thresholding(grayscale_img)
+    threshold_img = thresholding(grayscale_img, altitude)
     # cv.imshow("Disp1",frame)
     # cv.imshow("Disp2",threshold_img)
     square_contour = findContours(threshold_img, grayscale_img,altitude, size_square, cam_hfov)
