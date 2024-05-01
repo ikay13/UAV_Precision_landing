@@ -19,7 +19,8 @@ def display_error_and_text(frame, curr_err_px_tuple, alt_from_img, uav_inst):
         "land_tins",
         "return_to_launch",
         "climb_to_altitude",
-        "done"]
+        "done",
+        "align_before_landing"]
     curr_err_px[1] = frame.shape[0]-curr_err_px[1]  # Invert the y axis
     # Draw arrow from the middle to curr_err_px
     arrow_color = (0, 0, 255)  # Red color
