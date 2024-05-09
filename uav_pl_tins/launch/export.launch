@@ -1,0 +1,10 @@
+<launch>
+  <arg name="topic" default="/iris_downward_depth_camera/camera/rgb/image_raw" />
+  <arg name="bag"/>
+  
+  <node pkg="rosbag" type="play" name="rosbag" required="true" args="$(find uav_pl)/Bag/$(arg bag).bag"/>
+  <node pkg="image_transport" type="republish" name="image_transport" required="true" args="compressed _image_transport:=compressed in:=/iris_downward_depth_camera/camera/rgb/image_raw out:=/iris_downward_depth_camera/camera/rgb/image_raw" />
+  <node name="extract" pkg="image_view" type="extract_images" respawn="false" required="true" output="screen" cwd="ROS_HOME">
+    <remap from="image" to="$(arg topic)"/>
+  </node>
+</launch>

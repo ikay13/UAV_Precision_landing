@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 from square_detect import detect_square_main, check_for_time
-from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate, transform_ground_to_img_xy
-from hogh_circles import concentric_circles, small_circle
+from coordinate_transform import transform_to_ground_xy, calculate_new_coordinate, transform_ground_to_img_xy, update_waypoints
+from hogh_circles import concentric_circles, small_circle, tins
 from debugging_code import display_error_and_text
 import cv2 as cv
 import numpy as np
@@ -39,6 +39,8 @@ class state:
         self.climb_to_altitude = 12
         self.done = 13
         self.align_before_landing = 14
+        self.align_tin = 15
+        
     
 
 class error_estimation:
@@ -151,8 +153,8 @@ class error_estimation:
 
     def check_for_timeout(self):
         """Check if the time since last detection of an object is more than 3s"""
-        if rospy.Time.now().to_sec() - self.time_last_detection > 7:################################change later
-            return True
+        # if rospy.Time.now().to_sec() - self.time_last_detection > 300:################################change later
+        #     return True
         return False
 
 
@@ -161,8 +163,6 @@ class uav(state):
         state.__init__(self)
         self.altitude = None #Altitude of the fc in meters
         self.heading = 0 #Heading of the UAV in radians
-        self.latitude = 29.183972 #Current of the UAV
-        self.longitude = -81.043251 #Current longitude of the UAV
         self.state = self.initial
         self.cam_hfov = 65*np.pi/180 #Input by user
         self.cam_vfov = 52*np.pi/180 #Input by user
@@ -195,6 +195,7 @@ class main():
     def __init__(self):
         # Initialize ROS node and necessary variables
         rospy.init_node("UAV_landing", anonymous=True)
+        rospy.loginfo("Starting Initialization...")
 
         self.px4_state = State()  # PX4 state variable (Loiter, Offboard, etc.)
         self.target_pose = PoseStamped()  # Target pose variable
@@ -226,17 +227,24 @@ class main():
         self.takeoff_reached_time = None
         self.last_good_alignment_time = None
         self.well_aligned_time = 0
+        self.captured_tin = False
+        self.closest_tin_radius = 0
+        self.last_tin_xy = [0, 0]
+        self.waypoints = None
+        self.waypoints_adjusted = False
 
-
-        self.flight_altitude = 10
+        
 
         #####Subscribers#####
         # Subscribe to the downward depth camera image topic
         rospy.Subscriber("/iris_downward_depth_camera/camera/rgb/image_raw/compressed", CompressedImage, callback=self.camera)
         # Subscribe to the local position topic
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, callback=self.current_position)
+        # Subscribe to the global position topic
+        rospy.Subscriber("/mavros/global_position/global", NavSatFix, callback=self.global_position)
         # Subscribe to the MAVROS state topic
         rospy.Subscriber('mavros/state', State, callback=self.monitor_state)
+
         
         #####Waiting for services#####
         # Wait for the set_mode service to become available
@@ -254,13 +262,16 @@ class main():
         # Create a publisher for the velocity topic
         self.velocity_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=3)
         
-        # Define the waypoints for the UAV to fly to (relative to map frame)
         # self.waypoints = [[-10, 40, 10.0],
         #           [4, 30.0, 10.0]]
-        self.waypoints = [[-11, 36,  self.flight_altitude],
-                  [4, 30.0,  self.flight_altitude]]
-        self.waypoints_adjusted = False
 
+        #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
+        #########################################################################
+        self.gps_waypoints = [[-33.721707, 150.670795], [-33.721788, 150.670816]]
+        self.flight_altitude = 10
+        #########################################################################
+
+        
 
         # Set the frame ID and timestamp for the waypoint pose
         self.waypoint_pose.header.frame_id = 'map'
@@ -282,10 +293,14 @@ class main():
 
         # Initialize the start time for the check_for_time function
         check_for_time.start_time = None
+        
+        # self.err_estimation.altitude_m_avg = 1.5###################
+        # self.err_estimation.time_last_detection = rospy.Time.now().to_sec()
+        print("Initialization complete")
 
         # Run the landing process in a loop until rospy is shutdown
         while not rospy.is_shutdown():
-            self.landing()  # Call the landing function
+            self.landing(land_on_tins = False)  # Call the landing function
             self.rate.sleep()  # Sleep to maintain the desired loop frequency
 
     def current_position(self,msg):
@@ -293,8 +308,14 @@ class main():
         # Update current pose and altitude
         self.current_pose = msg
         self.uav_inst.altitude = self.current_pose.pose.position.z - self.takeoff_pos[2]
+    
         # Calculate Euler angles from quaternion
         self.angle = euler_from_quaternion([msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w])
+
+    def global_position(self,msg):
+        """Callback function for the global position subscriber updating vehicle position"""
+        # Update the global position
+        self.current_gps_lat_lon = [msg.latitude, msg.longitude]
 
     def camera(self,msg):
         """Callback function for the camera subscriber updating the image"""
@@ -303,12 +324,14 @@ class main():
         self.cv_image_updated = self.Bridge.compressed_imgmsg_to_cv2(msg,"bgr8")
         # Resize the image to a specific size
         self.cv_image_updated = cv.resize(self.cv_image_updated, (640, 480))
+        #self.cv_image_updated = cv.rotate(self.cv_image_updated, cv.ROTATE_180) #Camera is rotate by 180 degrees
         # Update the image size attribute
         self.uav_inst.image_size = (self.cv_image_updated.shape[1], self.cv_image_updated.shape[0])
         # Set the flag to indicate that the image has been updated
         self.updated_img = True
 
     def monitor_state(self,msg):
+        """Callback function for the state subscriber updating the PX4 state (1 Hz)"""
         # Update the PX4 state
         self.px4_state = msg
 
@@ -339,7 +362,7 @@ class main():
             if hover:
                 rospy.loginfo("Hovering and aligning")
                 #P controller to maintain altitude
-                altitude_target = 1 #Hover at 1 m
+                altitude_target = 1.3 #Hover at 1.3 m
                 delta_alt = altitude_target - self.err_estimation.altitude_m_avg
                 gain_alt = 0.8
                 self.final_vel.twist.linear.z = gain_alt*delta_alt
@@ -364,7 +387,7 @@ class main():
                 self.final_vel.header.stamp = rospy.Time.now()
                 self.final_vel.twist.linear.x = self.linear_vel * np.cos(theta_horizontal)
                 self.final_vel.twist.linear.y = self.linear_vel * np.sin(theta_horizontal)
-                self.final_vel.twist.linear.z = -0.2 #Descend with 0.2 m/s
+                self.final_vel.twist.linear.z = -0.5 #Descend with 0.2 m/s
                 # Publish the velocity message
             self.velocity_pub.publish(self.final_vel)
 
@@ -381,18 +404,51 @@ class main():
         self.velocity_pub.publish(self.final_vel)
         #Calculate how much the UAV has ascended by based on the velocity and time elapsed
         self.ascended_by_m = (rospy.Time.now().to_sec() - self.ascending_start_time) * self.final_vel.twist.linear.z
+
+    def check_alignment(self, land_on_tins = False):
+        """Check if the UAV is well aligned with the target (for a certain time). 
+        IF so switch to tin detection or landing depending on state."""
+        distance = sqrt(self.err_estimation.x_m_avg**2 + self.err_estimation.y_m_avg**2)
+        if distance < 0.1: #Always less than 10cm of target
+            if self.well_aligned_time > 1: #UAV has been well aligned for 1s land now
+                #Reset times to be used in tin alignment
+                self.last_good_alignment_time = None 
+                self.well_aligned_time = 0
+                if self.uav_inst.state == self.state_inst.align_tin or not land_on_tins:
+                    rospy.loginfo("Landing now")
+                    self.uav_inst.state = self.state_inst.land
+                elif self.uav_inst.state == self.state_inst.align_before_landing:
+                    rospy.loginfo("Aligned well, switching to tin detection")
+                    self.uav_inst.state = self.state_inst.align_tin
+                
+            if self.last_good_alignment_time is None:
+                self.last_good_alignment_time = rospy.Time.now().to_sec()
+            else:
+                self.well_aligned_time += rospy.Time.now().to_sec() - self.last_good_alignment_time
+                self.last_good_alignment_time = rospy.Time.now().to_sec()
+        else:
+            self.last_good_alignment_time = None
+            self.well_aligned_time = 0
         
 
 
-    def landing(self):    
+    def landing(self, land_on_tins):    
         if self.current_pose != None and self.waypoint_pose != None: #Check if the current pose and waypoint pose are not None
             # Check the current state of the UAV
             ########################################
             if self.uav_inst.state == self.state_inst.initial and (rospy.Time.now().to_sec() - self.initialization_time) > 2:
+                """Initial state of the UAV. This handles taking off and waiting for arming. 
+                Once the UAV completes takeoff, it switches to fly_to_waypoint state."""
+
                 # Arm the UAV manually
                 rospy.loginfo_once("Vehicle is ready to armed...")
                 if self.px4_state.armed:
                     rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z-self.takeoff_pos[2] ))
+                    if self.waypoints_adjusted == False:
+                            #Adjust the waypoints for the takeoff position
+                            self.waypoints = update_waypoints(self.gps_waypoints, self.current_gps_lat_lon , self.flight_altitude, self.takeoff_pos)
+                            print("Waypoints adjusted: ", self.waypoints)
+                            self.waypoints_adjusted = True
                     if self.armed_time is None:
                         #Set this time only the first time the vehicle is armed
                         self.armed_time = rospy.Time.now().to_sec()
@@ -409,19 +465,14 @@ class main():
                     elif self.px4_state.mode != 'AUTO.TAKEOFF' and (rospy.Time.now().to_sec() - self.armed_time) > 2:
                         #Make sure the vehicle is in takeoff mode (exept is already switched to loiter)
                         self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
-                        if self.waypoints_adjusted == False:
-                            #Adjust the waypoints for the takeoff position
-                            for waypoint in self.waypoints:
-                                waypoint[0] = waypoint[0] + self.takeoff_pos[0]
-                                waypoint[1] = waypoint[1] + self.takeoff_pos[1]
-                                waypoint[2] = waypoint[2] + self.takeoff_pos[2]
-                            self.waypoints_adjusted = True
                         mode = self.set_mode(custom_mode='AUTO.TAKEOFF')
                         if mode.mode_sent:
                             rospy.loginfo_once("Vehicle is taking off.")
                     
             ########################################
             elif self.uav_inst.state == self.state_inst.fly_to_waypoint and (rospy.Time.now().to_sec()-self.takeoff_reached_time)>2:
+                """State to fly to the waypoints. The UAV flies to the waypoints and switches to detect_square state 
+                once the waypoint is reached (After wait time to stabilize). Reaching the waypoint is checked by the distance to the waypoint."""
                 rospy.loginfo_once("Flying to waypoint")
                 if not self.waypoint_pushed:
                     #Push the waypoint to the UAV if not already done so
@@ -442,6 +493,8 @@ class main():
                 delta_x = (self.waypoint_pose.pose.position.x - self.current_pose.pose.position.x)
                 delta_y = (self.waypoint_pose.pose.position.y - self.current_pose.pose.position.y)
                 delta_z = (self.waypoint_pose.pose.position.z - self.current_pose.pose.position.z)
+                rospy.loginfo_throttle(1, "self.current_pose.pose.position.x: {}, self.current_pose.pose.position.y: {}, self.current_pose.pose.position.z: {}".format(self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z))
+                rospy.loginfo_throttle(1, "Waypoint x: {}, Waypoint y: {}, Waypoint z: {}".format(self.waypoint_pose.pose.position.x, self.waypoint_pose.pose.position.y, self.waypoint_pose.pose.position.z))
                 rospy.loginfo_throttle(1, "Delta x: {}, Delta y: {}, Delta z: {}".format(delta_x, delta_y, delta_z))
                 
                 # Calculate the radius of proximity
@@ -465,21 +518,23 @@ class main():
                             rospy.loginfo("Vehicle is in OFFBOARD mode. Vehicle now flying to the waypoint.")
                 
                 # Check if the radius of proximity is less than or equal to 0.4
-                if self.radius_of_proximity <= 0.4: ########################
-                    # if self.px4_state.mode != 'AUTO.LOITER':    
-                    # print("setting to loiter mode")
-                    # # Switch the vehicle to AUTO.LOITER mode
-                    # mode = self.set_mode(custom_mode='AUTO.LOITER')
-                    # if mode.mode_sent:
-                    #         rospy.loginfo("Vehicle is now in LOITER mode.")
+                if self.radius_of_proximity <= 0.25: 
                     self.target_reached_time = rospy.Time.now().to_sec()
                     rospy.loginfo_once("Reached the waypoint")
                     self.uav_inst.state = self.state_inst.detect_square
                    
             if self.updated_img:    #Only run if new image is available   
+                #This contains everything where image processing is involved
                 self.cv_image = self.cv_image_updated #Update image to the new image      
+
                 ########################################################
                 if self.uav_inst.state == self.state_inst.detect_square and (rospy.Time.now().to_sec() - self.target_reached_time) > 5:
+                    """State to detect the square. The UAV stays at current waypoint and tries to detect the square for predetermined time. 
+                    If the square is detected and close, the UAV switches to descend_square state. 
+                    If the square is not detected, the UAV switches to fly_to_waypoint state.
+                    If the square is detected but too far away, the code adds that as a waypoint and switches to fly_to_waypoint state.
+                    Calulates the altitude from the image and updates the error estimation."""
+
                     rospy.loginfo_throttle(3, "Detecting square")
                     #rospy.loginfo("publishing detect")
                     self.waypoint_pose_pub.publish(self.waypoint_pose)
@@ -546,6 +601,11 @@ class main():
 
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.descend_square:
+                    """State to descend to the square. Using the center of the square to align. If the square is lost, the UAV ascends slightly.
+                    Once the UAV is low enough, state switches to descend_concentric state. 
+                    If the square is lost for a long time, the UAV switches to return_to_launch state.
+                    Calulates the altitude from the image and updates the error estimation."""
+
                     rospy.loginfo_throttle(3, "Descend square")
                     if self.err_estimation.altitude_m_avg is not None: #Make sure altitude is actually set
                         # Detect the square and update errors, altitude and the threshold image
@@ -575,16 +635,16 @@ class main():
                         elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                             # Set the linear velocity components in the x, y, and z directions
                             self.slight_ascend()
-                            """ if self.px4_state.mode != 'AUTO.LAND':    
-                                mode = self.set_mode(custom_mode='AUTO.LAND')
-                                if mode.mode_sent:
-                                    rospy.loginfo_once("Target out of FOV. Vehicle will just land at the current position.") """
 
                         self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                         
                     
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.descend_concentric:
+                    """State to descend using concentric circles. The UAV descends using concentric circles to align with the target.
+                    If the target is lost, the UAV ascends slightly or times out. If the UAV is low enough, the state switches to descend_inner_circle state."
+                    Calulates the altitude from the image and updates the error estimation."""
+
                     current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
                     alt, error_xy, edges = concentric_circles(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj) 
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
@@ -597,19 +657,24 @@ class main():
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                         self.slight_ascend()
 
-                    if self.err_estimation.altitude_m_avg < 1.4:
+                    if self.err_estimation.altitude_m_avg < 2.5:
                         self.uav_inst.state = self.state_inst.descend_inner_circle
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                     
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.descend_inner_circle:
+                    """State to descend using the inner circle. The UAV descends using the inner circle to align with the target.
+                    If the target is lost, the UAV ascends slightly. If the UAV is low enough, the state switches to align_before_landing state.
+                    Calulates the altitude from the image and updates the error estimation"""
+
                     current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
+                    print("current_alt: ", current_alt)
                     alt,error_xy, edges = small_circle(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
 
                     if alt is not None:
                         self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
-                        if self.err_estimation.altitude_m_avg < 1: #Too low to descend further (risk of losing target)
+                        if self.err_estimation.altitude_m_avg < 1.5: #Too low to descend further (risk of losing target)
                             self.guided_descend(hover=True) #Do not descend further align at current altitude
                             self.uav_inst.state = self.state_inst.align_before_landing
                         else:
@@ -623,8 +688,13 @@ class main():
 
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.align_before_landing:
-                    #Align the UAV with the target right before landing
-                    rospy.loginfo_throttle(1, "Aligning before landing")
+                    """This state is used to align the UAV with the target well before landing or detecting tins. 
+                    The altitude is maintained and the UAV is aligned with the target. 
+                    If the target is lost for a short time, the state switches to descend_inner_circle state.
+                    If lost for a long time, the state switches to return_to_launch state."""
+
+                    #Align the UAV with the target right before looking for tins
+                    rospy.loginfo_throttle(1, "Aligning before looking for tins tins")
                     current_alt = self.err_estimation.altitude_m_avg
                     alt,error_xy, edges = small_circle(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
@@ -632,19 +702,7 @@ class main():
                     if alt is not None:
                         self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
                         self.guided_descend(hover=True) #Do not descend further align at current altitude
-                        distance = sqrt(self.err_estimation.x_m_avg**2 + self.err_estimation.y_m_avg**2)
-                        if distance < 0.1: #Always less than 10cm of target
-                            if self.well_aligned_time > 1: #UAV has been well aligned for 1s land now
-                                self.uav_inst.state = self.state_inst.land
-                                
-                            if self.last_good_alignment_time is None:
-                                self.last_good_alignment_time = rospy.Time.now().to_sec()
-                            else:
-                                self.well_aligned_time += rospy.Time.now().to_sec() - self.last_good_alignment_time
-                                self.last_good_alignment_time = rospy.Time.now().to_sec()
-                        else:
-                            self.last_good_alignment_time = None
-                            self.well_aligned_time = 0
+                        self.check_alignment(land_on_tins=land_on_tins) #Check if the UAV is well aligned and change states if so
 
                     elif self.err_estimation.check_for_timeout(): #No target detected for longer time
                         print("Timeout")
@@ -652,17 +710,125 @@ class main():
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but was detected recently (Ascend slightly and try again)
                         self.state_inst.descend_inner_circle #Change state to try again
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
+                
+                ########################################################
+                elif self.uav_inst.state == self.state_inst.align_tin:
+                    """This is used if the UAV should land on a tin. The small circle has to stay in frame as this is used as a reference point. 
+                    If the tins are lost for a short time, the state switches to descend_inner_circle state. If the tins are lost for a long time, 
+                    the state switches to return_to_launch state. If the tins are not close enough to the small circle,
+                    the UAV just lands at the current position (Should be the middle).
+                    If tins are close enough the UAV flies over the closes one to the center and switches to landing state once well aligned for a certain time."""
 
+                    rospy.loginfo_throttle(1, "Aligning with tins")
+                    #Get small circle just as before
+                    current_alt = self.err_estimation.altitude_m_avg
+                    img_cpy = self.cv_image.copy() #Make a copy of the image to not overwrite the original
+                    alt,err_small_circle, edges_circle = small_circle(frame=img_cpy, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
+
+                    if alt is not None: #Small circle found
+                        rospy.loginfo_throttle(1, "Small circle found")
+                        tolerance_radius = 0.1 #How close the tin has to be to the first radius found (To ensure always tracking the same tin)
+                        #This is relative to the immage coordinate system (x ranges from -1 to 1 and y from -0.75 to 0.75)
+                        #Align the UAV with the tin right before landing
+                        #The mode before already aligned the uav well relative to the middle circle
+                        errors_xy, edges = tins(frame=self.cv_image, altitude=alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
+                        debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
+                        if errors_xy is not None: #Tins found
+                            #rospy.loginfo("Tins found")
+                            if not self.captured_tin: #First time looking for tins
+                                dimensions = np.array(errors_xy).ndim
+                                if dimensions == 1: #only one tin found
+                                    #Distances detected tin to center of the small circle
+                                    x_diff = errors_xy[0]-err_small_circle[0]
+                                    y_diff = errors_xy[1]-err_small_circle[1]
+                                    self.closest_tin_radius = sqrt(x_diff**2 + y_diff**2)
+                                    self.last_tin_xy = errors_xy
+                                else: #multiple tins found
+                                    smallest_radius = 1000
+                                    for error in errors_xy: #Get closest tin
+                                        #Distance relative to circle center
+                                        x_diff = error[0]-err_small_circle[0]
+                                        y_diff = error[1]-err_small_circle[1]
+                                        radius = sqrt(x_diff**2 + y_diff**2)
+                                        if radius < smallest_radius: #Update closest tin
+                                            smallest_radius = radius
+                                            self.last_tin_xy = error
+                                            self.captured_tin = True
+                                    self.closest_tin_radius = smallest_radius
+                                    if smallest_radius > 0.7:
+                                        rospy.loginfo("No tins close enough")
+                                        self.uav_inst.state = self.state_inst.return_to_launch
+
+                            else: #Already found a tin
+                                error_final = None
+                                dimensions = np.array(errors_xy).ndim
+                                valid_positions = [] #List of valid positions for tins (within tolerance radius)
+                                if dimensions == 1:
+                                    radius = sqrt(errors_xy[0]**2 + errors_xy[1]**2)
+                                    if self.closest_tin_radius - tolerance_radius < radius < self.closest_tin_radius + tolerance_radius: 
+                                        x_diff = errors_xy[0]-err_small_circle[0]
+                                        y_diff = errors_xy[1]-err_small_circle[1]
+                                        valid_positions.append(errors_xy)
+                                else:
+                                    for error in errors_xy:
+                                        x_diff = error[0]-err_small_circle[0]
+                                        y_diff = error[1]-err_small_circle[1]
+                                        radius = sqrt(x_diff**2 + y_diff**2)
+                                        if self.closest_tin_radius - tolerance_radius < radius < self.closest_tin_radius + tolerance_radius:
+                                            valid_positions.append(error)
+                                dimensions = np.array(valid_positions).ndim
+                                if len(valid_positions) == 0:
+                                    rospy.loginfo("No valid tins found")
+                                elif dimensions == 1: #only one tin found
+                                    self.last_tin_xy = valid_positions
+                                    error_final = valid_positions
+                                else: #multiple tins found
+                                    #Find the closest tin to the last tin (Assumption is that tin has not moved a lot since last frame)
+                                    dist_to_last_tin = 1000
+                                    updated_postions = []
+                                    for error in valid_positions:
+                                        distance = sqrt((error[0]-self.last_tin_xy[0])**2 + (error[1]-self.last_tin_xy[1])**2)
+                                        if distance < dist_to_last_tin:
+                                            dist_to_last_tin = distance
+                                            updated_postions = error
+                                            error_final = error
+                                    self.last_tin_xy = [self.last_tin_xy[0]*0.85 + 0.15*updated_postions[0], self.last_tin_xy[1]*0.85 + 0.15*updated_postions[1]]
+                                    #Update the last tin position with a weighted average. This prevents outliers from affecting the position too much
+                                if error_final is not None:
+                                    self.err_estimation.update_errors(error_final[0], error_final[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size, self.angle[2])
+                                    self.guided_descend(hover=True) #Align without descending over closest tin to center of circle
+                                    self.check_alignment(land_on_tins=land_on_tins) #Check if the UAV is well aligned and switch to landing if so
+                    else:
+                        #If the innercircle is not detected display edges of the inner circle detection
+                        debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges_circle, cv.COLOR_GRAY2BGR)])
+                    self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
+                    if not self.captured_tin:
+                        #No tin detected. Just land at current position
+                        rospy.loginfo("No tins found. Landing at current position")
+                        self.uav_inst.state = self.state_inst.land
+
+                    elif self.err_estimation.time_last_detection is not None and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 1:
+                        #If no tins found for 1s, switch mode to ascend slightly and try again
+                        #Tins were detected before but not anymore
+                        rospy.loginfo("No tins found for 1s, switching to descend_inner_circle.")
+                        self.uav_inst.state = self.state_inst.descend_inner_circle 
 
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.land:
+                    """State to land the UAV. The UAV lands at the current position and disarms."""
+
                     if self.px4_state.mode != 'AUTO.LAND':    
                         mode = self.set_mode(custom_mode='AUTO.LAND')
                         if mode.mode_sent:
                             rospy.loginfo_once("Vehicle is now landing.")
+                    if self.px4_state.armed == False:
+                        rospy.loginfo("UAV landed (disarmed)")
+                        #rospy.signal_shutdown("Vehicle landed (disarmed)")
                 
                 ########################################################
                 elif self.uav_inst.state == self.state_inst.return_to_launch:
+                    """State to return to launch. Right now just loitering. May be changed later to return to launch."""
+
                     # For now just loiter no rtl
                     rospy.loginfo("Timeout. Loitering")
                     if self.px4_state.mode != 'AUTO.LOITER':    
@@ -675,10 +841,9 @@ class main():
                 #Set updated_to false to wait for new img
                 self.updated_img = False 
 
+                # Publish the image with the errors and text overlay and threshold image/edges
                 img_to_msg = self.Bridge.cv2_to_compressed_imgmsg(self.cv_image,'jpg')
                 self.img_pub.publish(img_to_msg)
-                # cv.imshow("Display",self.cv_image)
-                # cv.waitKey(0)
 
 
 
