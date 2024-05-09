@@ -265,13 +265,14 @@ class main():
         # Define the waypoints for the UAV to fly to (relative to map frame)
         # self.waypoints = [[-10, 40, 10.0],
         #           [4, 30.0, 10.0]]
-        # self.waypoints = [[-11, 36, 10.0],
-        #           [4, 30.0, 10.0]]
-        self.waypoints = [[-2.5, 0, 7],
-                  [-2.5, 0, 7]]
-        self.waypoints_adjusted = False #Set this to true if waypoints have been adjusted for takeoff position
-        
 
+        #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
+        #########################################################################
+        self.gps_waypoints = [[-33.721707, 150.670795], [-33.721788, 150.670816]]
+        self.flight_altitude = 10
+        #########################################################################
+
+        
 
         # Set the frame ID and timestamp for the waypoint pose
         self.waypoint_pose.header.frame_id = 'map'
