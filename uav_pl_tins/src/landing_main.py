@@ -455,6 +455,8 @@ class main():
                     rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z-self.takeoff_pos[2] ))
                     if self.waypoints_adjusted == False:
                             #Adjust the waypoints for the takeoff position
+                            self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
+                            print("takeoff_pos: ", self.takeoff_pos)
                             self.waypoints = update_waypoints(self.gps_waypoints, self.current_gps_lat_lon , self.flight_altitude, self.takeoff_pos)
                             print("Waypoints adjusted: ", self.waypoints)
                             self.waypoints_adjusted = True
@@ -592,7 +594,7 @@ class main():
 
                         error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
                         print("current error: ", error_in_m)
-                        if error_in_m < 4: #################Temporary was: 2
+                        if error_in_m < 3:
                             # If error is within threshold, switch to descending state
                             self.uav_inst.state = self.state_inst.descend_square
                             self.waypoints.pop()
