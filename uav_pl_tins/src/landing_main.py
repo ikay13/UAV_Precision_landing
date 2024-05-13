@@ -19,6 +19,7 @@ from mavros_msgs.srv import *
 from geometry_msgs.msg import *
 from std_msgs.msg import *
 from tf.transformations import quaternion_from_euler,euler_from_quaternion
+from geometry_msgs.msg import Vector3Stamped
 
 
 
@@ -134,6 +135,9 @@ class error_estimation:
         self.err_px_x = curr_err_px[0]
         self.err_px_y = curr_err_px[1]
         self.time_last_detection = rospy.Time.now().to_sec()
+
+
+        
 
         
     
@@ -261,13 +265,15 @@ class main():
         self.img_pub = rospy.Publisher("/iris_downward_depth_camera/camera/landing/rgb/image_raw/compressed", CompressedImage, queue_size=100)
         # Create a publisher for the velocity topic
         self.velocity_pub = rospy.Publisher("mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=3)
+        # Create a publisher for the error relative to the target captured by the camera
+        self.err_estimation_pub = rospy.Publisher("/err_from_img", Vector3Stamped, queue_size=50)
         
         # self.waypoints = [[-10, 40, 10.0],
         #           [4, 30.0, 10.0]]
 
         #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
         #########################################################################
-        self.gps_waypoints = [[-33.721707, 150.670795], [-33.721788, 150.670816]]
+        self.gps_waypoints = [[-33.721707, 150.670795], [-33.721788, 150.670810]]
         self.flight_altitude = 10
         #########################################################################
 
@@ -290,6 +296,9 @@ class main():
 
         # Set the frame ID for the final velocity
         self.final_vel.header.frame_id = "map"
+
+        # Initialize the message for logging the error relative to the target captured by the camera
+        self.err_from_img = Vector3Stamped()
 
         # Initialize the start time for the check_for_time function
         check_for_time.start_time = None
@@ -583,7 +592,7 @@ class main():
 
                         error_in_m = sqrt(self.err_estimation.x_m**2 + self.err_estimation.y_m**2)
                         print("current error: ", error_in_m)
-                        if error_in_m < 2:
+                        if error_in_m < 4: #################Temporary was: 2
                             # If error is within threshold, switch to descending state
                             self.uav_inst.state = self.state_inst.descend_square
                             self.waypoints.pop()
@@ -844,6 +853,14 @@ class main():
                 # Publish the image with the errors and text overlay and threshold image/edges
                 img_to_msg = self.Bridge.cv2_to_compressed_imgmsg(self.cv_image,'jpg')
                 self.img_pub.publish(img_to_msg)
+
+                # Publish the error relative to the target picked up by the camera
+                self.err_from_img.vector.x = self.err_estimation.x_m_avg
+                self.err_from_img.vector.y = self.err_estimation.y_m_avg
+                self.err_from_img.vector.z = self.err_estimation.altitude_m_avg
+                self.err_from_img.header.stamp = rospy.Time.now()
+
+                self.err_estimation_pub.publish(self.err_from_img)
 
 
 
