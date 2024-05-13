@@ -268,8 +268,8 @@ class main():
 
         #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
         #########################################################################
-        self.gps_waypoints = [[-33.721707, 150.670795], [-33.721788, 150.670816]]
-        self.flight_altitude = 10
+        self.gps_waypoints = [[29.182694, -81.044196], [29.182688, -81.044150]]
+        self.flight_altitude = 6
         #########################################################################
 
         
@@ -453,6 +453,8 @@ class main():
                     rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z-self.takeoff_pos[2] ))
                     if self.waypoints_adjusted == False:
                             #Adjust the waypoints for the takeoff position
+                            self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
+                            print("takeoff_pos: ", self.takeoff_pos)
                             self.waypoints = update_waypoints(self.gps_waypoints, self.current_gps_lat_lon , self.flight_altitude, self.takeoff_pos)
                             print("Waypoints adjusted: ", self.waypoints)
                             self.waypoints_adjusted = True

@@ -74,7 +74,7 @@ def update_waypoints(waypoints_gps, current_gps_pos, flight_altitude, takeoff_po
         y = distance_m*cos(angle) + takeoff_position[1]
         altitude = flight_altitude + takeoff_position[2]
         print("New waypoint: ", x, y, altitude)
-        new_waypoints.append([x, y, flight_altitude])
+        new_waypoints.append([x, y, altitude])
     return new_waypoints
     
 
