@@ -166,6 +166,24 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
         #print("Altitude: ", alt)
 
         error_xy = calculate_error_image(circles=circles, img_width=frame_gray.shape[1], img_height=frame_gray.shape[0],num_of_circles=1)
+
+        #Also check for tins to ensure inner circle is not actually a tin
+        #Defines how much bigger the inner circle is compared to the tin so that the altitude passed to the tin detection can be adjusted
+        #This searches for a tin of the size that the inner circle would have. Prevents the code from wrongfully detecting tins as 
+        #the inner circle
+        ratio = circle_parameters_obj.diameter_small / circle_parameters_obj.tin_diameter
+        alt_for_tins = alt*ratio 
+        errors_xy_tins, edges_tins, radii_tins = tins(frame=frame, altitude=alt_for_tins, cam_hfov=cam_hfov, circle_parameters_obj=circle_parameters_obj)
+        # Check if tin center and radius are close to the small circle (means false detection)
+        if errors_xy_tins is not None:
+            #Check if the radii are approximately equal
+            for idx in len(radii_tins):
+                ratio_radii = radii_tins[idx]/circle[2]
+                distance_centers = np.sqrt((errors_xy_tins[idx][0] - error_xy[0])**2 + (errors_xy_tins[idx][1] - error_xy[1])**2)
+                if ratio_radii > 0.7 and ratio_radii < 1.3 and distance_centers < 0.1:
+                    #If both the center is close and the radius is the same, a tins has been picked up as the inner circle
+                    return None, None, edges
+                
         
         #This is drawn on orignal frame image passed to function and not a copy
         cv.circle(frame,(circle[0],circle[1]),circle[2],(0,0,0),2)
@@ -188,9 +206,9 @@ def tins(frame, altitude, cam_hfov, circle_parameters_obj):
     saturation = frame_hsv[:,:,1]
     blur = cv.medianBlur(saturation,3)
 
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*5
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*4
     #Max Thr for canny edge detection (can be much higher due to using saturation for edge detection)
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.5#Threshold for circle detection (Lower since less wrong edges)
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.4#Threshold for circle detection (Lower since less wrong edges)
     tolerance = 2     #This is the tolarance the circles are expected to be in
 
     ###Calculate the size of the tin relative to altitude and camera hfov
@@ -205,20 +223,22 @@ def tins(frame, altitude, cam_hfov, circle_parameters_obj):
                                 param1=cannyEdgeMaxThr,param2=circleDetectThr,minRadius=radii_tins[0],maxRadius=radii_tins[1])
     
     if tins is None:
-        return None , edges
+        return None , edges, None
     
     tins = np.int16(np.around(tins))
     tins = tins[0] #remove redundant dimensions
 
+    radii_tins = []
     errors = []
     for tin in tins:
         error_xy = calculate_error_image(circles=[tin], img_width=frame.shape[1], img_height=frame.shape[0],num_of_circles=1)
         errors.append(error_xy)
+        radii_tins.append(tin[2])
         #This is drawn on orignal frame image passed to function and not a copy
         cv.circle(frame,(tin[0],tin[1]),tin[2],(0,0,0),2)
         # draw the center of the circle
         cv.circle(frame,(tin[0],tin[1]),2,(0,0,0),3)
-    return errors, edges
+    return errors, edges, radii_tins
 
 
 

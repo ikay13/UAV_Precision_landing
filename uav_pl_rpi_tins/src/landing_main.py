@@ -423,7 +423,11 @@ class main():
         IF so switch to tin detection or landing depending on state."""
         distance = sqrt(self.err_estimation.x_m_avg**2 + self.err_estimation.y_m_avg**2)
         if distance < 0.1: #Always less than 8cm of target
-            if self.well_aligned_time > 2.5: #UAV has been well aligned for 1s land now
+            alignment_time = 2.5 #Time to be aligned for before landing (Applies only to algining with tins)
+            if self.uav_inst.state == self.state_inst.align_before_landing:
+                alignment_time = 1 #Long alignment i not necesarry for just landing on the inner circle (only for tins)
+
+            if self.well_aligned_time > alignment_time : #UAV has been well aligned for x sec land now
                 #Reset times to be used in tin alignment
                 self.last_good_alignment_time = None 
                 self.well_aligned_time = 0
@@ -689,7 +693,7 @@ class main():
                     Calulates the altitude from the image and updates the error estimation"""
 
                     current_alt = self.err_estimation.altitude_m_avg + self.ascended_by_m
-                    print("current_alt: ", current_alt)
+                    rospy.loginfo("current_alt: {}".format(current_alt))
                     alt,error_xy, edges = small_circle(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
 
@@ -701,7 +705,7 @@ class main():
                         else:
                             self.guided_descend()
                     elif self.err_estimation.check_for_timeout(): #No target detected for longer time
-                        print("Timeout")
+                        rospy.loginfo("Timeout")
                         self.uav_inst.state = self.state_inst.return_to_launch
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                         self.slight_ascend()
@@ -720,7 +724,10 @@ class main():
                     alt,error_xy, edges = small_circle(frame=self.cv_image, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                     debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
 
-                    if alt is not None:
+                    
+
+
+                    if alt is not None:                      
                         self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
                         self.guided_descend(hover=True) #Do not descend further align at current altitude
                         self.check_alignment(land_on_tins=land_on_tins) #Check if the UAV is well aligned and change states if so
@@ -752,7 +759,7 @@ class main():
                         #This is relative to the immage coordinate system (x ranges from -1 to 1 and y from -0.75 to 0.75)
                         #Align the UAV with the tin right before landing
                         #The mode before already aligned the uav well relative to the middle circle
-                        errors_xy, edges = tins(frame=self.cv_image, altitude=alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
+                        errors_xy, edges, _ = tins(frame=self.cv_image, altitude=alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                         debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
                         if errors_xy is not None: #Tins found
                             #rospy.loginfo("Tins found")
