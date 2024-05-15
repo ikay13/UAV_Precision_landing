@@ -163,12 +163,13 @@ processed_image, ret = adaptive_otsu_thresholding(image, altitude)
 contour = cv2.findContours(processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 processed_image = cv2.cvtColor(processed_image, cv2.COLOR_GRAY2BGR)
 contour = contour[0] if len(contour) == 2 else contour[1]
+image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 for c in contour:
     if cv2.contourArea(c) < 100000:
         continue
     approx_temp = cv2.approxPolyDP(c, 0.1*cv2.arcLength(c, True), True)
     #Draw the contour
-    cv2.drawContours(image, [approx_temp], 0, (0, 0, 0), 10)
+    cv2.drawContours(image, [approx_temp], 0, (255, 0, 0), 20)
 
     
 

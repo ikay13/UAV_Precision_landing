@@ -750,7 +750,7 @@ class main():
 
                     if alt is not None: #Small circle found
                         rospy.loginfo_throttle(1, "Small circle found")
-                        tolerance_radius = 0.1 #How close the tin has to be to the first radius found (To ensure always tracking the same tin)
+                        tolerance_radius = 0.2 #How close the tin has to be to the first radius found (To ensure always tracking the same tin)
                         #This is relative to the immage coordinate system (x ranges from -1 to 1 and y from -0.75 to 0.75)
                         #Align the UAV with the tin right before landing
                         #The mode before already aligned the uav well relative to the middle circle
@@ -830,7 +830,7 @@ class main():
                         rospy.loginfo("No tins found. Landing at current position")
                         self.uav_inst.state = self.state_inst.land
 
-                    elif self.err_estimation.time_last_detection is not None and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 1:
+                    elif self.err_estimation.time_last_detection is not None and rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5:
                         #If no tins found for 1s, switch mode to ascend slightly and try again
                         #Tins were detected before but not anymore
                         rospy.loginfo("No tins found for 1s, switching to descend_inner_circle.")

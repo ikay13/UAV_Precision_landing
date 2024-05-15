@@ -49,11 +49,12 @@ z_coords_cut = [z_coords[i] for i in filtered_indices]
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 ax.plot(x_coords_cut, y_coords_cut, z_coords_cut, linewidth=2.5)
-ax.set_xlabel('X Coordinate', fontsize=18)
-ax.set_ylabel('Y Coordinate', fontsize=18)
-ax.set_zlabel('Z Coordinate', fontsize=18)
-ax.set_title('3D Path Taken', fontsize=22)
-ax.tick_params(axis='both', which='major', labelsize=16)
+ax.set_xlabel('X Coordinate', fontsize=26)
+ax.set_ylabel('Y Coordinate', fontsize=26)
+ax.set_zlabel('Z Coordinate', fontsize=26)
+#ax.set_title('3D Path Taken', fontsize=22)
+ax.tick_params(axis='both', which='major', labelsize=24)
+plt.grid(True, linestyle='-', linewidth=1.5)  # Adding the grid with specific linestyle and linewidth
 plt.savefig('Documentation/Images/finished/3d_path_plot_sim.png', bbox_inches='tight')
 
 # Enable LaTeX rendering
@@ -63,11 +64,12 @@ fig_2d = plt.figure(figsize=(10, 8))
 plt.plot(x_coords_cut, y_coords_cut, 'k', linewidth=2.5, label='Trajectory')
 plt.scatter([x_coords_cut[0]], [y_coords_cut[0]], c='k', marker='x', s=100, label='Start')
 plt.scatter([x_coords_cut[-1]], [y_coords_cut[-1]], c='k', marker='o', s=100, label='End')
-plt.xlabel(r'$x$ in m', fontsize=18)
-plt.ylabel(r'$y$ in m', fontsize=18)
+plt.xlabel(r'$x$ in m', fontsize=26)
+plt.ylabel(r'$y$ in m', fontsize=26)
 #plt.title('Distance to Target', fontsize=22)
-plt.tick_params(axis='both', which='major', labelsize=16)
-plt.legend(fontsize=16)
+plt.tick_params(axis='both', which='major', labelsize=24)
+plt.grid(True, linestyle='-', linewidth=1.5)  # Adding the grid with specific linestyle and linewidth
+plt.legend(fontsize=22)
 plt.savefig('Documentation/Images/finished/2d_plot_sim.png', bbox_inches='tight')
 
 
@@ -84,15 +86,16 @@ ax.scatter([distances[0]], [z_coords_cut[0]], c='k', marker='x', s=100, label='S
 ax.scatter([distances[-1]], [z_coords_cut[-1]], c='k', marker='o', s=100, label='End')
 
 # Labeling the plot
-ax.set_xlabel('Distance on XY Plane in m', fontsize=18)
-ax.set_ylabel('Altitude in m', fontsize=18)
+ax.set_xlabel('Distance on XY Plane in m', fontsize=26)
+ax.set_ylabel('Altitude in m', fontsize=26)
 #ax.set_title('Altitude vs. Distance Traveled', fontsize=22)
 
 # Set background and text colors for visibility
 # ax.set_facecolor('k')
 # fig.set_facecolor('k')
-ax.tick_params(axis='both', which='major', labelsize=16)
-legend = ax.legend(fontsize=16)
+ax.tick_params(axis='both', which='major', labelsize=24)
+plt.grid(True, linestyle='-', linewidth=1.5)  # Adding the grid with specific linestyle and linewidth
+legend = ax.legend(fontsize=22)
 # plt.setp(legend.get_texts(), color='w')
 # legend.get_frame().set_facecolor('k')
 
