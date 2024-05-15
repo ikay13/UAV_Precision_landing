@@ -206,9 +206,9 @@ def tins(frame, altitude, cam_hfov, circle_parameters_obj):
     saturation = frame_hsv[:,:,1]
     blur = cv.medianBlur(saturation,3)
 
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*4
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*5
     #Max Thr for canny edge detection (can be much higher due to using saturation for edge detection)
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.4#Threshold for circle detection (Lower since less wrong edges)
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.3#Threshold for circle detection (Lower since less wrong edges)
     tolerance = 2     #This is the tolarance the circles are expected to be in
 
     ###Calculate the size of the tin relative to altitude and camera hfov

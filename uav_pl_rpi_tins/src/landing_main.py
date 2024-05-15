@@ -361,7 +361,7 @@ class main():
             theta_vertical = np.arctan2(deltaS, self.err_estimation.altitude_m_avg) #Angle to the target in relative to straight down plane
 
             # Calculate the linear velocity based on the distance
-            gain = 0.6 #1 is unstable. maybe possible to be slightly higher though
+            gain = 0.5 #0.6 shows oscillations when plotted
             self.linear_vel = gain * deltaS
             self.linear_vel = 0.8 if self.linear_vel > 0.8 else self.linear_vel #Avoid going too fast to be safe was 0.5
             ##################################
