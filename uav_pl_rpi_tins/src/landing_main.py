@@ -271,8 +271,8 @@ class main():
 
         #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
         #########################################################################
-        self.gps_waypoints = [[29.182694, -81.044196], [29.182688, -81.044150]]
-        self.flight_altitude = 6
+        self.flight_altitude = 7
+        self.waypoints = [[-2.5, 0, self.flight_altitude],[-2.5, 0, self.flight_altitude]]
         #########################################################################
 
         
@@ -305,7 +305,7 @@ class main():
 
         # Run the landing process in a loop until rospy is shutdown
         while not rospy.is_shutdown() and not self.manual_control:
-            self.landing(land_on_tins = False)  # Call the landing function
+            self.landing(land_on_tins = True)  # Call the landing function
             self.rate.sleep()  # Sleep to maintain the desired loop frequency
 
     def current_position(self,msg):
@@ -375,7 +375,7 @@ class main():
             if hover:
                 rospy.loginfo("Hovering and aligning")
                 #P controller to maintain altitude
-                altitude_target = 1 #Hover at 1 m
+                altitude_target = 1.5 #Hover at 1 m
                 delta_alt = altitude_target - self.err_estimation.altitude_m_avg
                 gain_alt = 0.8
                 self.final_vel.twist.linear.z = gain_alt*delta_alt
@@ -422,8 +422,8 @@ class main():
         """Check if the UAV is well aligned with the target (for a certain time). 
         IF so switch to tin detection or landing depending on state."""
         distance = sqrt(self.err_estimation.x_m_avg**2 + self.err_estimation.y_m_avg**2)
-        if distance < 0.1: #Always less than 10cm of target
-            if self.well_aligned_time > 1: #UAV has been well aligned for 1s land now
+        if distance < 0.1: #Always less than 8cm of target
+            if self.well_aligned_time > 2.5: #UAV has been well aligned for 1s land now
                 #Reset times to be used in tin alignment
                 self.last_good_alignment_time = None 
                 self.well_aligned_time = 0
@@ -457,13 +457,13 @@ class main():
                 rospy.loginfo_once("Vehicle is ready to armed...")
                 if self.px4_state.armed:
                     rospy.loginfo_throttle(1,"Altitude: {}".format(self.current_pose.pose.position.z-self.takeoff_pos[2] ))
-                    if self.waypoints_adjusted == False:
-                            #Adjust the waypoints for the takeoff position
-                            self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
-                            print("takeoff_pos: ", self.takeoff_pos)
-                            self.waypoints = update_waypoints(self.gps_waypoints, self.current_gps_lat_lon , self.flight_altitude, self.takeoff_pos)
-                            print("Waypoints adjusted: ", self.waypoints)
-                            self.waypoints_adjusted = True
+                    # if self.waypoints_adjusted == False:
+                    #         #Adjust the waypoints for the takeoff position
+                    #         self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
+                    #         print("takeoff_pos: ", self.takeoff_pos)
+                    #         self.waypoints = update_waypoints(self.gps_waypoints, self.current_gps_lat_lon , self.flight_altitude, self.takeoff_pos)
+                    #         print("Waypoints adjusted: ", self.waypoints)
+                    #         self.waypoints_adjusted = True
                     if self.armed_time is None:
                         #Set this time only the first time the vehicle is armed
                         self.armed_time = rospy.Time.now().to_sec()
@@ -480,6 +480,13 @@ class main():
                     elif self.px4_state.mode != 'AUTO.TAKEOFF' and (rospy.Time.now().to_sec() - self.armed_time) > 2:
                         #Make sure the vehicle is in takeoff mode (exept is already switched to loiter)
                         self.takeoff_pos = [self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.current_pose.pose.position.z]
+                        if self.waypoints_adjusted == False:
+                            #Adjust the waypoints for the takeoff position
+                            for waypoint in self.waypoints:
+                                waypoint[0] = waypoint[0] + self.takeoff_pos[0]
+                                waypoint[1] = waypoint[1] + self.takeoff_pos[1]
+                                waypoint[2] = waypoint[2] + self.takeoff_pos[2]
+                            self.waypoints_adjusted = True
                         mode = self.set_mode(custom_mode='AUTO.TAKEOFF')
                         if mode.mode_sent:
                             rospy.loginfo_once("Vehicle is taking off.")
@@ -566,14 +573,10 @@ class main():
                         #print("Time not over yet")
                     elif square_detected_err is False:
                         # Square not detected, switch to flying to next waypoint
-                        #self.uav_inst.state = self.state_inst.fly_to_waypoint
-                        # self.waypoint_pushed = False
-                        # self.offboard_switch_time = rospy.Time.now().to_sec()
-                        # check_for_time.start_time = None
-                        ############
-                        ############
-                        ############
-                        ############
+                        self.uav_inst.state = self.state_inst.fly_to_waypoint
+                        self.waypoint_pushed = False
+                        self.offboard_switch_time = rospy.Time.now().to_sec()
+                        check_for_time.start_time = None
                         rospy.loginfo("Square not detected. Flying to next waypoint.")
                     else:  # Done and detected
                         check_for_time.start_time = None
@@ -610,12 +613,7 @@ class main():
                         else:
                             # If error is too far, switch to flying to next waypoint
                             rospy.loginfo("Target detected but too far away. Flying closer. Distance: " + str(error_in_m) + "m")
-                            #self.uav_inst.state = self.state_inst.fly_to_waypoint
-                            ########
-                            ########
-                            ########
-                            ########
-                            ########
+                            self.uav_inst.state = self.state_inst.fly_to_waypoint
                             self.waypoint_pushed = False
                             self.offboard_switch_time = rospy.Time.now().to_sec()
                 elif self.uav_inst.state == self.state_inst.detect_square:
@@ -680,7 +678,7 @@ class main():
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.2: #Target not detected but was detected recently
                         self.slight_ascend()
 
-                    if self.err_estimation.altitude_m_avg < 1.5:
+                    if self.err_estimation.altitude_m_avg < 1.8:
                         self.uav_inst.state = self.state_inst.descend_inner_circle
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                     
@@ -697,7 +695,7 @@ class main():
 
                     if alt is not None:
                         self.err_estimation.update_errors(error_xy[0], error_xy[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size,self.angle[2])
-                        if self.err_estimation.altitude_m_avg < 1.2: #Too low to descend further (risk of losing target)
+                        if self.err_estimation.altitude_m_avg < 1.6: #Too low to descend further (risk of losing target)
                             self.guided_descend(hover=True) #Do not descend further align at current altitude
                             self.uav_inst.state = self.state_inst.align_before_landing
                         else:
