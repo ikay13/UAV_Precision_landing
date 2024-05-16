@@ -736,7 +736,9 @@ class main():
                         print("Timeout")
                         self.uav_inst.state = self.state_inst.return_to_launch
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but was detected recently (Ascend slightly and try again)
-                        self.state_inst.descend_inner_circle #Change state to try again
+                        self.uav_inst.state = self.state_inst.descend_inner_circle #Change state to try again
+                        rospy.loginfo("Lost target. Switching to inner circle")
+                    rospy.loginfo("time diff: {}".format(rospy.Time.now().to_sec() - self.err_estimation.time_last_detection))
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                 
                 ########################################################
@@ -754,7 +756,7 @@ class main():
                     alt,err_small_circle, edges_circle = small_circle(frame=img_cpy, altitude=current_alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
 
                     if alt is not None: #Small circle found
-                        rospy.loginfo_throttle(1, "Small circle found")
+                        rospy.loginfo("Small circle found")
                         tolerance_radius = 0.2 #How close the tin has to be to the first radius found (To ensure always tracking the same tin)
                         #This is relative to the immage coordinate system (x ranges from -1 to 1 and y from -0.75 to 0.75)
                         #Align the UAV with the tin right before landing
@@ -762,7 +764,7 @@ class main():
                         errors_xy, edges, _ = tins(frame=self.cv_image, altitude=alt, cam_hfov=self.uav_inst.cam_hfov, circle_parameters_obj=self.target_parameters_obj)
                         debugging_frame = cv.hconcat([self.cv_image, cv.cvtColor(edges, cv.COLOR_GRAY2BGR)])
                         if errors_xy is not None: #Tins found
-                            #rospy.loginfo("Tins found")
+                            rospy.loginfo("Tins found")
                             if not self.captured_tin: #First time looking for tins
                                 dimensions = np.array(errors_xy).ndim
                                 if dimensions == 1: #only one tin found
