@@ -738,7 +738,6 @@ class main():
                     elif rospy.Time.now().to_sec() - self.err_estimation.time_last_detection > 0.5: #Target not detected but was detected recently (Ascend slightly and try again)
                         self.uav_inst.state = self.state_inst.descend_inner_circle #Change state to try again
                         rospy.loginfo("Lost target. Switching to inner circle")
-                    rospy.loginfo("time diff: {}".format(rospy.Time.now().to_sec() - self.err_estimation.time_last_detection))
                     self.cv_image = display_error_and_text(debugging_frame, (self.err_estimation.err_px_x, self.err_estimation.err_px_y), self.err_estimation.altitude_m_avg,self.uav_inst)
                 
                 ########################################################
