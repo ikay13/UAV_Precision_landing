@@ -416,14 +416,15 @@ class main():
         self.final_vel.twist.linear.z = 0.25 #Ascend with 0.25 m/s
         self.velocity_pub.publish(self.final_vel)
         #Calculate how much the UAV has ascended by based on the velocity and time elapsed
-        self.ascended_by_m = (rospy.Time.now().to_sec() - self.ascending_start_time) * self.final_vel.twist.linear.z
+        self.ascended_by_m = (rospy.Time.now().to_sec() - self.ascending_start_time) * self.final_vel.twist.linear.z *0.5
+        #Multiply by 0.5 as the speed is slower than the commanded one at the beginning.
 
     def check_alignment(self, land_on_tins = False):
         """Check if the UAV is well aligned with the target (for a certain time). 
         IF so switch to tin detection or landing depending on state."""
         distance = sqrt(self.err_estimation.x_m_avg**2 + self.err_estimation.y_m_avg**2)
-        if distance < 0.1: #Always less than 8cm of target
-            alignment_time = 2.5 #Time to be aligned for before landing (Applies only to algining with tins)
+        if distance < 0.15: #Always less than 8cm of target
+            alignment_time = 1 #Time to be aligned for before landing (Applies only to algining with tins)
             if self.uav_inst.state == self.state_inst.align_before_landing:
                 alignment_time = 1 #Long alignment i not necesarry for just landing on the inner circle (only for tins)
 
@@ -821,7 +822,7 @@ class main():
                                             dist_to_last_tin = distance
                                             updated_postions = error
                                             error_final = error
-                                    self.last_tin_xy = [self.last_tin_xy[0]*0.85 + 0.15*updated_postions[0], self.last_tin_xy[1]*0.85 + 0.15*updated_postions[1]]
+                                    self.last_tin_xy = [self.last_tin_xy[0]*0.95 + 0.05*updated_postions[0], self.last_tin_xy[1]*0.95 + 0.05*updated_postions[1]]
                                     #Update the last tin position with a weighted average. This prevents outliers from affecting the position too much
                                 if error_final is not None:
                                     self.err_estimation.update_errors(error_final[0], error_final[1], alt, [self.uav_inst.cam_hfov, self.uav_inst.cam_vfov], self.uav_inst.image_size, self.angle[2])

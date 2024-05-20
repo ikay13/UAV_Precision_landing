@@ -176,20 +176,9 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
         errors_xy_tins, edges_tins, radii_tins = tins(frame=frame, altitude=alt_for_tins, cam_hfov=cam_hfov, circle_parameters_obj=circle_parameters_obj)
         # Check if tin center and radius are close to the small circle (means false detection)
         if errors_xy_tins is not None:
-            #Check if the radii are approximately equal
-            if len(radii_tins) > 1:
-                for idx in len(radii_tins):
-                    ratio_radii = radii_tins[idx]/circle[2]
-                    distance_centers = np.sqrt((errors_xy_tins[idx][0] - error_xy[0])**2 + (errors_xy_tins[idx][1] - error_xy[1])**2)
-                    if ratio_radii > 0.7 and ratio_radii < 1.3 and distance_centers < 0.1:
-                        #If both the center is close and the radius is the same, a tins has been picked up as the inner circle
-                        return None, None, edges
-            else:
-                #Only one tin
-                ratio_radii = radii_tins/circle[2]
-                print("errors_xy_tins: ", errors_xy_tins)
-                print("error_xy: ", error_xy)
-                distance_centers = np.sqrt((errors_xy_tins[0][0] - error_xy[0])**2 + (errors_xy_tins[0][1] - error_xy[1])**2)
+            for idx in range(len(radii_tins)):
+                ratio_radii = radii_tins[idx]/circle[2]
+                distance_centers = np.sqrt((errors_xy_tins[idx][0] - error_xy[0])**2 + (errors_xy_tins[idx][1] - error_xy[1])**2)
                 if ratio_radii > 0.7 and ratio_radii < 1.3 and distance_centers < 0.1:
                     #If both the center is close and the radius is the same, a tins has been picked up as the inner circle
                     return None, None, edges
@@ -216,10 +205,10 @@ def tins(frame, altitude, cam_hfov, circle_parameters_obj):
     saturation = frame_hsv[:,:,1]
     blur = cv.medianBlur(saturation,3)
 
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*4
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*5
     #Max Thr for canny edge detection (can be much higher due to using saturation for edge detection)
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.6#Threshold for circle detection (Lower since less wrong edges)
-    tolerance = 2     #This is the tolarance the circles are expected to be in
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.22#Threshold for circle detection (Lower since less wrong edges)
+    tolerance = 1.25     #This is the tolarance the circles are expected to be in
 
     ###Calculate the size of the tin relative to altitude and camera hfov
     dist_img_on_ground = tan(cam_hfov/2)*2*altitude
