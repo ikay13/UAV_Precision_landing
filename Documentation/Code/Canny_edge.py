@@ -3,9 +3,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 import math
 
-def concentric_circles(frame, altitude=1.5, cam_hfov=65):
+def concentric_circles(frame, altitude=1, cam_hfov=65):
     """Detects concentric circles in the image using altitude"""
     frame_gray = frame
+    frame_rgb = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2RGB)
+    frame_rgb_all_circles = frame_rgb.copy()
     blur = cv2.medianBlur(frame_gray,3)
 
     #Threshold image to get only the area inside square plus other bright spots (reduces edges in image)
@@ -17,9 +19,9 @@ def concentric_circles(frame, altitude=1.5, cam_hfov=65):
 
     ###Parameters
     cannyEdgeMaxThr = 50 #Max Thr for canny edge detection
-    circleDetectThr = 20#Threshold for circle detection
+    circleDetectThr = 71#Threshold for circle detection
     factor = 1.7 #Factor big circle diameter / small circle diameter
-    tolerance = 1.5     #This is the tolarance the circles are expected to be in
+    tolerance = 1.8   #This is the tolarance the circles are expected to be in
 
     calculated_altitude = None #This is the altitude calculated from the image (As the circel dimensions are known)
 
@@ -52,9 +54,20 @@ def concentric_circles(frame, altitude=1.5, cam_hfov=65):
         circles_small = np.int16(np.around(circles_small))
         circles_small = circles_small[0] #remove redundant dimension
 
-
+    print("circles found: ", circles_big, circles_small)
     ###Check if both circles are found
     if circles_big is not None and circles_small is not None: #Circles have been found in both sizes
+        #Draw the circles
+        for i in circles_big:
+            # draw the outer circle
+            cv2.circle(frame_rgb_all_circles,(i[0],i[1]),i[2],(255,0,0),2)
+            # draw the center of the circle
+            cv2.circle(frame_rgb_all_circles,(i[0],i[1]),2,(255,0,0),3)
+        for i in circles_small:
+            # draw the outer circle
+            cv2.circle(frame_rgb_all_circles,(i[0],i[1]),i[2],(255,0,0),2)
+            # draw the center of the circle
+            cv2.circle(frame_rgb_all_circles,(i[0],i[1]),2,(255,0,0),3)
         circles = []
         for big_c in circles_big:
             for small_c in circles_small:
@@ -76,42 +89,54 @@ def concentric_circles(frame, altitude=1.5, cam_hfov=65):
                 #print("Altitude: ", alt)
                 #This is drawn on orignal frame image passed to function and not a copy
                 # draw the outer circle
-                cv2.circle(frame,(i[0],i[1]),i[2],(0,0,0),2)
+                # cv2.circle(frame_rgb,(i[0],i[1]),i[2],(255,0,0),2)
+                # # draw the center of the circle
+                # cv2.circle(frame_rgb,(i[0],i[1]),2,(255,0,0),3)
+                cv2.circle(frame_rgb_all_circles,(i[0],i[1]),i[2],(0,255,0),2)
                 # draw the center of the circle
-                cv2.circle(frame,(i[0],i[1]),2,(0,0,0),3)
+                cv2.circle(frame_rgb_all_circles,(i[0],i[1]),2,(0,255,0),3)
         else:
             #No concentric circles found
-            return None, edges
+            print("No concentric circles found1")
+            return None, edges, frame_rgb
+        
     else:
         #No circles found (either big or small)
         
         # combinedImage = np.concatenate((frame, edges), axis=1) #Combine canny edge detection and gray image
         # cv2.imshow('Circles and Canny', combinedImage) #Display the combined image
         # cv2.waitKey(1)
-        return None, edges
+        print("No concentric circles found2")
+        return None, edges, frame_rgb
         
 
     # combinedImage = np.concatenate((frame, edges), axis=1) #Combine canny edge detection and gray image
     # cv2.imshow('Circles and Canny', combinedImage) #Display the combined image
     # cv2.waitKey(1)
 
-    return calculated_altitude, edges
+    return calculated_altitude, edges, frame_rgb, frame_rgb_all_circles
 
 # Load the image in grayscale mode
-image = cv2.imread('Documentation/Images/concentric_scaled_water.png', cv2.IMREAD_GRAYSCALE)
+image = cv2.imread('Documentation/Images/concentric_w_shadow.png', cv2.IMREAD_GRAYSCALE)
 
 # Check if image has loaded correctly
 if image is None:
     print("Error: Image could not be read.")
     exit()
 
-alt, edges = concentric_circles(frame=image)
+alt, edges, frame_rgb, frame_rgb_all = concentric_circles(frame=image)
 
 # Display and save the original image
 plt.figure(figsize=(5, 5))
-plt.imshow(image, cmap='gray')
+plt.imshow(frame_rgb, cmap='gray')
 plt.axis('off')  # Hides the axis
 plt.savefig('Documentation/Images/finished/concentric_original_fitted_img.png', bbox_inches='tight')
+
+# Display and save the all circles image
+plt.figure(figsize=(5, 5))
+plt.imshow(frame_rgb_all, cmap='gray')
+plt.axis('off')  # Hides the axis
+plt.savefig('Documentation/Images/finished/concentric_all_circles.png', bbox_inches='tight')
 
 # Display and save the edge-detected image
 plt.figure(figsize=(5, 5))
