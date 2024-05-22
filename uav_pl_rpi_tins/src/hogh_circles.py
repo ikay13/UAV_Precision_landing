@@ -126,7 +126,7 @@ def concentric_circles(frame, altitude, cam_hfov, circle_parameters_obj):
 def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
     """Detects concentric circles in the image using altitude"""
     ###Parameters
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold *1.2#Max Thr for canny edge detection
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold #Max Thr for canny edge detection
     circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*1.2#Threshold for circle detection
     factor = circle_parameters_obj.factor #Factor big circle diameter / small circle diameter
     tolerance = 1.5     #This is the tolarance the circles are expected to be in
@@ -203,11 +203,12 @@ def tins(frame, altitude, cam_hfov, circle_parameters_obj):
     """Detects tins in the image using altitude"""
     frame_hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     saturation = frame_hsv[:,:,1]
-    blur = cv.medianBlur(saturation,3)
+    #blur = cv.medianBlur(saturation,3)
+    blur = saturation
 
-    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*5
+    cannyEdgeMaxThr = circle_parameters_obj.canny_max_threshold*4.4
     #Max Thr for canny edge detection (can be much higher due to using saturation for edge detection)
-    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.22#Threshold for circle detection (Lower since less wrong edges)
+    circleDetectThr = circle_parameters_obj.hough_circle_detect_thr*0.25#Threshold for circle detection (Lower since less wrong edges)
     tolerance = 1.25     #This is the tolarance the circles are expected to be in
 
     ###Calculate the size of the tin relative to altitude and camera hfov
