@@ -1,0 +1,63 @@
+<mxfile host="Electron" modified="2024-05-21T13:34:27.839Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.4.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="L2NBQbDmJE2XsZQdXrqD" version="24.4.0" type="device">
+  <diagram name="Page-1" id="hat-HUDbCyiaCq35tLK4">
+    <mxGraphModel dx="1434" dy="870" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tCXYivwOezwSR3KFf7SS-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="tCXYivwOezwSR3KFf7SS-1" target="tCXYivwOezwSR3KFf7SS-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-1" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Takeoff&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="tCXYivwOezwSR3KFf7SS-2" target="tCXYivwOezwSR3KFf7SS-6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-2" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Fly to next waypoint&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="tCXYivwOezwSR3KFf7SS-4" target="tCXYivwOezwSR3KFf7SS-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-4" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Wait for UAV to be armed&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="140" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="tCXYivwOezwSR3KFf7SS-5" target="tCXYivwOezwSR3KFf7SS-2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-5" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Waypoint list&lt;/b&gt;&lt;/font&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" parent="1" vertex="1">
+          <mxGeometry x="160" y="320" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="tCXYivwOezwSR3KFf7SS-6" target="tCXYivwOezwSR3KFf7SS-1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="440" />
+              <mxPoint x="550" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-11" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;b&gt;Not detected&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="tCXYivwOezwSR3KFf7SS-10" vertex="1" connectable="0">
+          <mxGeometry x="-0.8065" y="2" relative="1" as="geometry">
+            <mxPoint x="35" y="-88" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="tCXYivwOezwSR3KFf7SS-6" target="tCXYivwOezwSR3KFf7SS-15" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="510" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fRSAsIwv2cWKKvY5IKMI-1" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;b&gt;Detected&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="tCXYivwOezwSR3KFf7SS-14">
+          <mxGeometry x="-0.15" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-6" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Check for square&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tCXYivwOezwSR3KFf7SS-15" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Descending process&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="365" y="510" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -251,9 +251,9 @@ class main():
         # Wait for the set_mode service to become available
         rospy.wait_for_service('/mavros/set_mode')
         self.set_mode = rospy.ServiceProxy('/mavros/set_mode', SetMode)
-        # Wait for the arm service to become available
-        rospy.wait_for_service('/mavros/cmd/arming')
-        self.arm = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
+        # # Wait for the arm service to become available
+        # rospy.wait_for_service('/mavros/cmd/arming')
+        # self.arm = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
         
         #####Publishers#####
         # Create a publisher for the waypoint pose topic
