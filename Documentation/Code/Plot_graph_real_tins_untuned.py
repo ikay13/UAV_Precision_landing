@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rosbag
 import rospy
 import matplotlib.pyplot as plt
@@ -5,9 +7,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 # Path to your Rosbag folder
-path_to_folder = '/media/mathis_ros/PortableSSD/Rosbags/05_16_24/'
-#file_names = ['circle1.bag', 'circle2.bag', 'circle3.bag', 'circle5.bag']
-file_names = ['circle7.bag']
+path_to_folder = '/media/mathis_ros/PortableSSD/Rosbags/'
+#file_names = ['tin13.bag', 'tin14.bag', 'tin15.bag', 'tin16.bag', 'tin17.bag', 'tin18.bag', 'tin19.bag']
+file_names = ['tins3.bag']
 
 # Enable LaTeX rendering
 plt.rc('text', usetex=True)
@@ -24,6 +26,7 @@ plt.rcParams.update({
 })
 
 for file_name in file_names:
+    print("file_name: ", file_name)
     bag_file = path_to_folder + file_name
     base_file_name = file_name.split('.')[0]
 
@@ -57,9 +60,9 @@ for file_name in file_names:
     # Specifying the starting point for plotting based on z_coord not being zero
     start_index = next((i for i, z in enumerate(z_coords) if z != 0), None)
     if start_index is None:
-        raise ValueError("All z_coords are zero, cannot start plot.")
+        raise ValueError("All z_coords are zero, cannot start plot. Base file: " + base_file_name)
     
-    #Remove everything that has the same value as the last element
+    # Remove everything that has the same value as the last element
     while z_coords[-1] == z_coords[-2]:
         z_coords.pop(-1)
         x_coords.pop(-1)
@@ -79,7 +82,6 @@ for file_name in file_names:
         distances.append(distance_temp)
 
     # Create the plot
-    #5.5 or 9.25
     fig, ax = plt.subplots(figsize=(9.25, 10))
     ax.plot(distances, z_coords_cut, 'k-', label='Trajectory')
     ax.scatter([distances[0]], [z_coords_cut[0]], c='k', marker='x', s=100, label='Start')
@@ -88,10 +90,9 @@ for file_name in file_names:
     # Labeling the plot
     ax.set_xlabel('Distance on XY Plane in m')
     ax.set_ylabel('Altitude in m')
-    # ax.set_title('Altitude vs. Distance Traveled')
 
     # Set x-axis limits
-    ax.set_xlim([0, 2.5])
+    ax.set_xlim([0, 1.5])
     ax.set_ylim([0, max(z_coords_cut) + 0.5])
 
     # Add vertical lines
@@ -107,7 +108,7 @@ for file_name in file_names:
     ax.legend()
 
     # Save and show the plot
-    plt.savefig(f'Documentation/Images/finished/altitude_vs_distance_{base_file_name}.png', bbox_inches='tight')
+    plt.savefig(f'Documentation/Images/finished/altitude_vs_distance_ptoohigh_{base_file_name}.png', bbox_inches='tight')
     plt.close(fig)
 
     # Convert timestamps to seconds for easier plotting
@@ -122,7 +123,7 @@ for file_name in file_names:
     ax1.grid(True, linestyle='-')
     ax1.legend()
 
-    plt.savefig(f'Documentation/Images/finished/altitude_vs_time_plot_{base_file_name}.png', bbox_inches='tight')
+    plt.savefig(f'Documentation/Images/finished/altitude_vs_time_plot_ptoohigh_{base_file_name}.png', bbox_inches='tight')
     plt.close(fig)
 
     # Calculate error as distance from origin (0, 0, 0)
@@ -137,5 +138,17 @@ for file_name in file_names:
     ax2.grid(True, linestyle='-')
     ax2.legend()
 
-    plt.savefig(f'Documentation/Images/finished/error_vs_time_plot_{base_file_name}.png', bbox_inches='tight')
+    plt.savefig(f'Documentation/Images/finished/error_vs_time_plot_ptoohigh_{base_file_name}.png', bbox_inches='tight')
+    plt.close(fig)
+
+    # Create x position vs. time plot
+    fig, ax3 = plt.subplots(figsize=(10, 8))
+    ax3.plot(t_seconds, x_coords_cut, 'k-', label='X Position')
+    ax3.set_xlabel(r'\textit{t} in s')
+    ax3.set_ylabel(r'\textit{x} in m')
+    ax3.tick_params(axis='both', which='major')
+    ax3.grid(True, linestyle='-')
+    ax3.legend()
+
+    plt.savefig(f'Documentation/Images/finished/x_position_vs_time_plot_ptoohigh_{base_file_name}.png', bbox_inches='tight')
     plt.close(fig)

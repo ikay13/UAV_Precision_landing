@@ -5,9 +5,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 # Path to your Rosbag folder
-path_to_folder = '/media/mathis_ros/PortableSSD/Rosbags/05_16_24/'
-#file_names = ['circle1.bag', 'circle2.bag', 'circle3.bag', 'circle5.bag']
-file_names = ['circle7.bag']
+path_to_folder = '/media/mathis_ros/PortableSSD/Rosbags/05_16_24/afternoon/'
+file_names = ['tin13.bag', 'tin14.bag', 'tin15.bag', 'tin16.bag', 'tin17.bag', 'tin18.bag', 'tin19.bag']
+#file_names = ['tin.bag']
 
 # Enable LaTeX rendering
 plt.rc('text', usetex=True)
@@ -24,6 +24,7 @@ plt.rcParams.update({
 })
 
 for file_name in file_names:
+    print("file_name: ", file_name)
     bag_file = path_to_folder + file_name
     base_file_name = file_name.split('.')[0]
 
@@ -57,7 +58,7 @@ for file_name in file_names:
     # Specifying the starting point for plotting based on z_coord not being zero
     start_index = next((i for i, z in enumerate(z_coords) if z != 0), None)
     if start_index is None:
-        raise ValueError("All z_coords are zero, cannot start plot.")
+        raise ValueError("All z_coords are zero, cannot start plot. Base file: " + base_file_name)
     
     #Remove everything that has the same value as the last element
     while z_coords[-1] == z_coords[-2]:
@@ -91,7 +92,7 @@ for file_name in file_names:
     # ax.set_title('Altitude vs. Distance Traveled')
 
     # Set x-axis limits
-    ax.set_xlim([0, 2.5])
+    ax.set_xlim([0, 1.5])
     ax.set_ylim([0, max(z_coords_cut) + 0.5])
 
     # Add vertical lines

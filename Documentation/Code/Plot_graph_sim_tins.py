@@ -58,6 +58,13 @@ for file_name in file_names:
     start_index = next((i for i, z in enumerate(z_coords) if z >= 11), None)
     if start_index is None:
         raise ValueError("All z_coords are zero, cannot start plot.")
+    
+    #Remove everything that has the same value as the last element
+    while z_coords[-1] == z_coords[-2]:
+        z_coords.pop(-1)
+        x_coords.pop(-1)
+        y_coords.pop(-1)
+        t_stamps.pop(-1)
 
     # Filter data to start from the specified start time
     x_coords_cut = x_coords[start_index:]
@@ -91,6 +98,11 @@ for file_name in file_names:
     ax.axvline(x=0.36, color='k', linestyle=':', label='Outer circle (0.36m)')
 
     ax.tick_params(axis='both', which='major')
+    #remove 0 from y axis
+    yticks = ax.get_yticks()
+    if 0 in yticks:
+        yticks = yticks[yticks != 0]
+    ax.set_yticks(yticks)
     ax.grid(True, linestyle='-')
     ax.legend()
 
@@ -117,6 +129,11 @@ for file_name in file_names:
     ax1.text(25.2, 4, 'Hovering and aligning', fontsize=26, color='black', rotation=-90)
 
     ax1.tick_params(axis='both', which='major')
+    #remove 0 from y axis
+    yticks = ax1.get_yticks()
+    if 0 in yticks:
+        yticks = yticks[yticks != 0]
+    ax1.set_yticks(yticks)
     ax1.grid(True, linestyle='-')
     ax1.set_xlim([0, max(t_seconds)])
     #ax.axvline(x=21.5, color='k', linestyle=':', label='')

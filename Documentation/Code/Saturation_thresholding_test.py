@@ -2,51 +2,61 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-# Load the image
-image = cv2.imread('Documentation/Images/image3.png')
+def process_image(image_path):
+    # Load the image
+    image = cv2.imread(image_path)
 
-# Check if image has loaded correctly
-if image is None:
-    print("Error: Image could not be read.")
+    # Check if image has loaded correctly
+    if image is None:
+        print(f"Error: Image {image_path} could not be read.")
+        return None, None, None
+
+    # Convert the image to the HSV color space
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Extract the saturation channel
+    saturation_channel = hsv_image[:, :, 1]
+
+    # Apply a threshold to the saturation channel
+    _, thresholded_image = cv2.threshold(saturation_channel, 127, 255, cv2.THRESH_BINARY)
+
+    return image, saturation_channel, thresholded_image
+
+# Input images
+image_paths = ['Documentation/Images/closed.png', 'Documentation/Images/semiclsoed.png', 'Documentation/Images/open.png']
+
+# Process images
+images = [process_image(image_path) for image_path in image_paths]
+
+# Check if all images loaded correctly
+if any(image_set is None for image_set in images):
+    print("Error: One or more images could not be processed.")
     exit()
 
-# Convert the image to the HSV color space
-hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+# Create the 3x4 grid for better comparison (3 rows for images, 4 columns including filenames)
+fig, axes = plt.subplots(3, 4, figsize=(20, 15))
 
-# Extract the saturation channel
-saturation_channel = hsv_image[:, :, 1]
-value_channel = hsv_image[:, :, 2]
+for i, (image_path, (original, saturation, thresholded)) in enumerate(zip(image_paths, images)):
+    # Display filename
+    axes[i, 0].text(0.5, 0.5, image_path, rotation=90, verticalalignment='center', horizontalalignment='center')
+    axes[i, 0].axis('off')
+    
+    # Display original image
+    axes[i, 1].imshow(cv2.cvtColor(original, cv2.COLOR_BGR2RGB))
+    axes[i, 1].set_title(f"Original Image {i+1}")
+    axes[i, 1].axis('off')
 
-# Apply thresholding on the saturation channel
-# Here, we use a simple binary threshold with a threshold value of 128 (you can adjust this value)
-_, thresholded_image = cv2.threshold(saturation_channel, 25, 255, cv2.THRESH_BINARY)
-threshold_value = cv2.adaptiveThreshold(value_channel, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-combined_img = cv2.bitwise_and(thresholded_image, threshold_value)
-cv2.imshow('thresholded_image', thresholded_image)
-cv2.imshow('threshold_value', threshold_value)
-cv2.imshow('combined', combined_img)
-cv2.waitKey(0)
+    # Display saturation channel
+    axes[i, 2].imshow(saturation, cmap='gray')
+    axes[i, 2].set_title(f"Saturation Channel {i+1}")
+    axes[i, 2].axis('off')
 
-# Display and save the original image
-plt.figure(figsize=(10, 5))
-
-plt.subplot(1, 3, 1)
-plt.title("Original Image")
-plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-plt.axis('off')
-
-# Display and save the saturation channel
-plt.subplot(1, 3, 2)
-plt.title("Saturation Channel")
-plt.imshow(saturation_channel, cmap='gray')
-plt.axis('off')
-
-# Display and save the thresholded image
-plt.subplot(1, 3, 3)
-plt.title("Thresholded Image")
-plt.imshow(thresholded_image, cmap='gray')
-plt.axis('off')
+    # Display thresholded image
+    axes[i, 3].imshow(thresholded, cmap='gray')
+    axes[i, 3].set_title(f"Thresholded Image {i+1}")
+    axes[i, 3].axis('off')
 
 # Save the images
-plt.savefig('thresholding_saturation.png', bbox_inches='tight')
+plt.tight_layout()
+plt.savefig('comparison_grid.png', bbox_inches='tight')
 plt.show()

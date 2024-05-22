@@ -18,6 +18,10 @@ class Position2DPlots:
         with open(time_file_path, 'r') as file:
             self.time = json.loads(file.read())
 
+        #Check if all files have been opened
+        if not self.x_position or not self.y_position or not self.z_position or not self.time:
+            print("Error opening files")
+            return
         self.fig2 = plt.figure()
 
 
@@ -30,24 +34,26 @@ class Position2DPlots:
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.grid(True)
+        # for timestep in range(len(self.time)):
+        #     print("timestep", self.time[timestep])
 
         #Plot only specific time range
-        time_start = 60 #t in s
+        time_start = 0 #t in s
         time_end = 100 #t in s
         start_index = 0
-        end_index = 0
+        end_index = -1
         
-
         for i in range(len(self.label)):
-            for i in range(len(self.time)):
-                if self.time[i] >= time_start:
-                    start_index = i
-                    break
-            for i in range(len(self.time)):
-                if self.time[i] >= time_end:
-                    end_index = i
-                    break
             print("label", self.label[i])
+            # for i in range(len(self.time)):
+            #     if self.time[i] >= time_start:
+            #         start_index = i
+            #         break
+            # for i in range(len(self.time)):
+            #     if self.time[i] >= time_end:
+            #         end_index = i
+            #         break
+            # print("label", self.label[i])
             if not self.label[i] == "Pose" and not self.label[i] == "Odometry":
                 ax.plot(xvalues[start_index:end_index], yvalues[self.label[i]][start_index:end_index], label=self.label[i])
                 #ax.plot(xvalues[self.label[i]], yvalues[self.label[i]], label=self.label[i])
