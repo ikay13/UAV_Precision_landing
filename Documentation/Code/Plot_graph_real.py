@@ -6,8 +6,9 @@ import numpy as np
 
 # Path to your Rosbag folder
 path_to_folder = '/media/mathis_ros/PortableSSD/Rosbags/05_16_24/'
-#file_names = ['circle1.bag', 'circle2.bag', 'circle3.bag', 'circle5.bag']
-file_names = ['circle7.bag']
+#'circle3.bag', 'circle5.bag'
+file_names = ['circle1.bag', 'circle2.bag']
+#file_names = ['circle7.bag']
 
 # Enable LaTeX rendering
 plt.rc('text', usetex=True)
@@ -80,7 +81,7 @@ for file_name in file_names:
 
     # Create the plot
     #5.5 or 9.25
-    fig, ax = plt.subplots(figsize=(9.25, 10))
+    fig, ax = plt.subplots(figsize=(5.5, 10))
     ax.plot(distances, z_coords_cut, 'k-', label='Trajectory')
     ax.scatter([distances[0]], [z_coords_cut[0]], c='k', marker='x', s=100, label='Start')
     ax.scatter([distances[-1]], [z_coords_cut[-1]], c='k', marker='o', s=100, label='End')
@@ -91,8 +92,8 @@ for file_name in file_names:
     # ax.set_title('Altitude vs. Distance Traveled')
 
     # Set x-axis limits
-    ax.set_xlim([0, 2.5])
-    ax.set_ylim([0, max(z_coords_cut) + 0.5])
+    ax.set_xlim([0, 1.5])
+    ax.set_ylim([0, 9])
 
     # Add vertical lines
     ax.axvline(x=1, color='k', linestyle='--', label='Edge of platform (1m)')
@@ -104,7 +105,7 @@ for file_name in file_names:
         yticks = yticks[yticks != 0]
     ax.set_yticks(yticks)
     ax.grid(True, linestyle='-')
-    ax.legend()
+    #ax.legend()
 
     # Save and show the plot
     plt.savefig(f'Documentation/Images/finished/altitude_vs_distance_{base_file_name}.png', bbox_inches='tight')

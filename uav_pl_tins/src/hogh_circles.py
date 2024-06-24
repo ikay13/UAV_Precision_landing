@@ -177,7 +177,7 @@ def small_circle(frame, altitude, cam_hfov, circle_parameters_obj):
         # Check if tin center and radius are close to the small circle (means false detection)
         if errors_xy_tins is not None:
             #Check if the radii are approximately equal
-            for idx in len(radii_tins):
+            for idx in range(len(radii_tins)):
                 ratio_radii = radii_tins[idx]/circle[2]
                 distance_centers = np.sqrt((errors_xy_tins[idx][0] - error_xy[0])**2 + (errors_xy_tins[idx][1] - error_xy[1])**2)
                 if ratio_radii > 0.7 and ratio_radii < 1.3 and distance_centers < 0.1:

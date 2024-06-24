@@ -167,7 +167,7 @@ class uav(state):
         state.__init__(self)
         self.altitude = None #Altitude of the fc in meters
         self.heading = 0 #Heading of the UAV in radians
-        self.state = self.initial
+        self.state = self.descend_inner_circle ####################################################################changed
         self.cam_hfov = 65*np.pi/180 #Input by user
         self.cam_vfov = 52*np.pi/180 #Input by user
         self.image_size = [640, 480] #Automatically updated by the code
@@ -241,7 +241,9 @@ class main():
 
         #####Subscribers#####
         # Subscribe to the downward depth camera image topic
-        rospy.Subscriber("/iris_downward_depth_camera/camera/rgb/image_raw/compressed", CompressedImage, callback=self.camera)
+        rospy.Subscriber("/rpi/rgb/image_raw/compressed", CompressedImage, callback=self.camera)
+        #/iris_downward_depth_camera/camera/rgb/image_raw/compressed
+        #/rpi/rgb/image_raw/landing/rgb/image_raw/compressed
         # Subscribe to the local position topic
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, callback=self.current_position)
         # Subscribe to the global position topic
@@ -251,12 +253,12 @@ class main():
 
         
         #####Waiting for services#####
-        # Wait for the set_mode service to become available
-        rospy.wait_for_service('/mavros/set_mode')
-        self.set_mode = rospy.ServiceProxy('/mavros/set_mode', SetMode)
-        # Wait for the arm service to become available
-        rospy.wait_for_service('/mavros/cmd/arming')
-        self.arm = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
+        # # Wait for the set_mode service to become available
+        # rospy.wait_for_service('/mavros/set_mode')
+        # self.set_mode = rospy.ServiceProxy('/mavros/set_mode', SetMode)
+        # # Wait for the arm service to become available
+        # rospy.wait_for_service('/mavros/cmd/arming')
+        # self.arm = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
         
         #####Publishers#####
         # Create a publisher for the waypoint pose topic
@@ -305,11 +307,13 @@ class main():
         
         # self.err_estimation.altitude_m_avg = 1.5###################
         # self.err_estimation.time_last_detection = rospy.Time.now().to_sec()
+        self.err_estimation.altitude_m_avg = 2
+        self.err_estimation.time_last_detection = rospy.Time.now().to_sec()
         print("Initialization complete")
 
         # Run the landing process in a loop until rospy is shutdown
         while not rospy.is_shutdown():
-            self.landing(land_on_tins = True)  # Call the landing function
+            self.landing(land_on_tins = False)  # Call the landing function
             self.rate.sleep()  # Sleep to maintain the desired loop frequency
 
     def current_position(self,msg):

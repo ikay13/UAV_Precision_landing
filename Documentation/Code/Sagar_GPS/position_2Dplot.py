@@ -6,9 +6,9 @@ from matplotlib import pyplot as plt
 
 class Position2DPlots:
     def __init__(self, x_file_path, y_file_path, z_file_path, time_file_path):
-        self.label = ['GPS local','Odometry', 'Pose', 'Lidar']
-        self.line = [[], []]
-
+        self.label = ['GPS local', 'Lidar']
+        
+        # Read data from files
         with open(x_file_path, 'r') as file:
             self.x_position = json.loads(file.read())
         with open(y_file_path, 'r') as file:
@@ -16,52 +16,72 @@ class Position2DPlots:
         with open(z_file_path, 'r') as file:
             self.z_position = json.loads(file.read())
         with open(time_file_path, 'r') as file:
-            self.time = json.loads(file.read())
+            self.time_data = json.loads(file.read())
+            self.time = self.time_data['GPS local']  # Extract the list of time values
 
-        #Check if all files have been opened
+        # Check if all files have been opened and contain data
         if not self.x_position or not self.y_position or not self.z_position or not self.time:
-            print("Error opening files")
+            print("Error opening files or files are empty")
             return
+        
+        # Setup plot
         self.fig2 = plt.figure()
-
-
         self.ax2 = self.fig2.add_subplot(1, 1, 1)
         self.setup_2d_plot(self.ax2, self.time, self.z_position, 't in s', 'Altitude in m')
 
+        
+
+        # Save and show the plot
+        #Set size of figure
+        self.fig2.set_size_inches(10, 6)
+        output_file_path = 'Documentation/Images/finished/altitude_vs_time_gps_lidar.png'
+        plt.savefig(output_file_path, bbox_inches='tight')
+        print(f"Plot saved as {output_file_path}")
+
         plt.show()
 
+
     def setup_2d_plot(self, ax, xvalues, yvalues, xlabel, ylabel):
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        # Set x and y labels with latex
+        ax.set_xlabel(r'\textit{t} in s')
+        ax.set_ylabel(r'Altitude in m')
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
         ax.grid(True)
-        # for timestep in range(len(self.time)):
-        #     print("timestep", self.time[timestep])
 
-        #Plot only specific time range
-        time_start = 0 #t in s
-        time_end = 100 #t in s
-        start_index = 0
-        end_index = -1
+        # Plot only specific time range
+        time_start = 52  # t in s
+        time_end = 120 # t in s
+        start_index = next(i for i, t in enumerate(xvalues) if t >= time_start)
+        end_index = next(i for i, t in enumerate(xvalues) if t >= time_end)
+
+        for label in self.label:
+            print("label", label)
+            if label in yvalues:
+                if label == 'GPS local':
+                    color_line = 'k'
+                else:
+                    #grey
+                    color_line = '#606060'
+                ax.plot(xvalues[start_index:end_index], yvalues[label][start_index:end_index], label=label, color=color_line)
         
-        for i in range(len(self.label)):
-            print("label", self.label[i])
-            # for i in range(len(self.time)):
-            #     if self.time[i] >= time_start:
-            #         start_index = i
-            #         break
-            # for i in range(len(self.time)):
-            #     if self.time[i] >= time_end:
-            #         end_index = i
-            #         break
-            # print("label", self.label[i])
-            if not self.label[i] == "Pose" and not self.label[i] == "Odometry":
-                ax.plot(xvalues[start_index:end_index], yvalues[self.label[i]][start_index:end_index], label=self.label[i])
-                #ax.plot(xvalues[self.label[i]], yvalues[self.label[i]], label=self.label[i])
-
+        #set start and end of plot
+        ax.set_xlim([time_start, time_end])
         ax.legend()
-        # ax.axis('equal')
 
 if __name__ == '__main__':
+    # Set common style properties
+    plt.rc('text', usetex=True)
+    plt.rcParams.update({
+        'font.size': 26,
+        'axes.labelsize': 26,
+        'xtick.labelsize': 24,
+        'ytick.labelsize': 24,
+        'legend.fontsize': 22,
+        'lines.linewidth': 2.5,
+        'grid.linewidth': 1.5,
+    })
+
     path = 'Documentation/Code/Sagar_GPS/'
 
     x_file_path = path + 'x_pos.txt'

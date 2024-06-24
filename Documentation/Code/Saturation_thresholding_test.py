@@ -22,8 +22,8 @@ def process_image(image_path):
 
     return image, saturation_channel, thresholded_image
 
-# Input images
-image_paths = ['Documentation/Images/closed.png', 'Documentation/Images/semiclsoed.png', 'Documentation/Images/open.png']
+# Input images (excluding 'closed.png')
+image_paths = ['Documentation/Images/semiclsoed.png', 'Documentation/Images/open.png', '/home/mathis_ros/Documents/Images/manual_landing_raw.png']
 
 # Process images
 images = [process_image(image_path) for image_path in image_paths]
@@ -33,30 +33,26 @@ if any(image_set is None for image_set in images):
     print("Error: One or more images could not be processed.")
     exit()
 
-# Create the 3x4 grid for better comparison (3 rows for images, 4 columns including filenames)
-fig, axes = plt.subplots(3, 4, figsize=(20, 15))
-
+# Save images separately
 for i, (image_path, (original, saturation, thresholded)) in enumerate(zip(image_paths, images)):
-    # Display filename
-    axes[i, 0].text(0.5, 0.5, image_path, rotation=90, verticalalignment='center', horizontalalignment='center')
-    axes[i, 0].axis('off')
-    
-    # Display original image
-    axes[i, 1].imshow(cv2.cvtColor(original, cv2.COLOR_BGR2RGB))
-    axes[i, 1].set_title(f"Original Image {i+1}")
-    axes[i, 1].axis('off')
+    # Convert original image to RGB for saving with matplotlib
+    original_rgb = cv2.cvtColor(original, cv2.COLOR_BGR2RGB)
 
-    # Display saturation channel
-    axes[i, 2].imshow(saturation, cmap='gray')
-    axes[i, 2].set_title(f"Saturation Channel {i+1}")
-    axes[i, 2].axis('off')
+    # Save original image
+    plt.figure(figsize=(6, 6))
+    plt.imshow(original_rgb)
+    #plt.title(f"Original Image {i+1}")
+    plt.axis('off')
+    plt.savefig(f'Documentation/Images/finished/Saturation/original_image_{i+1}.png', bbox_inches='tight')
+    plt.close()
 
-    # Display thresholded image
-    axes[i, 3].imshow(thresholded, cmap='gray')
-    axes[i, 3].set_title(f"Thresholded Image {i+1}")
-    axes[i, 3].axis('off')
+    # Save saturation channel image
+    plt.figure(figsize=(6, 6))
+    plt.imshow(saturation, cmap='gray')
+    #plt.title(f"Saturation Channel {i+1}")
+    plt.axis('off')
+    plt.savefig(f'Documentation/Images/finished/Saturation/saturation_channel_{i+1}.png', bbox_inches='tight')
+    plt.close()
 
-# Save the images
-plt.tight_layout()
-plt.savefig('comparison_grid.png', bbox_inches='tight')
-plt.show()
+
+print("Images saved successfully.")
