@@ -1,0 +1,4 @@
+<launch>
+  <node name="pi_cam_pub.py" pkg="picamera" type="pi_cam_pub.py" output="screen"/>
+  <include file="$(find mavros)/launch/px4.launch"></include>
+</launch>

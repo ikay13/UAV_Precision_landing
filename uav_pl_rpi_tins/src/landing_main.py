@@ -271,8 +271,8 @@ class main():
 
         #Enter waypoints and flight altitude here (lat,long,alt) Enter all digits for lat and long
         #########################################################################
-        self.flight_altitude = 7
-        self.waypoints = [[-2.5, 0, self.flight_altitude],[-2.5, 0, self.flight_altitude]]
+        self.flight_altitude = 10
+        self.waypoints = [[-18, 2, self.flight_altitude],[-18,2, self.flight_altitude]]
         #########################################################################
 
         
@@ -305,7 +305,7 @@ class main():
 
         # Run the landing process in a loop until rospy is shutdown
         while not rospy.is_shutdown() and not self.manual_control:
-            self.landing(land_on_tins = True)  # Call the landing function
+            self.landing(land_on_tins = False)  # Call the landing function
             self.rate.sleep()  # Sleep to maintain the desired loop frequency
 
     def current_position(self,msg):

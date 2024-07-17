@@ -25,7 +25,7 @@ def thresholding(img,alt):
 
     #Calculate the optimal threshold using Otsu's method (modified to set different threshold value)
     ####Parameter########
-    otsu_factor = 50 #a higher value will result in a higher threshold
+    otsu_factor = 200 #a higher value will result in a higher threshold
     if 5 < alt < 10: #Between 5 and 10m gradually decrease otsu_factor from 50 to 1
         otsu_factor = 49/5*alt-48
     elif alt < 5: #below 5 meter normal otsu thresholding
@@ -55,13 +55,13 @@ def thresholding(img,alt):
     #Use this threshold to convert the image to binary
     ret, th_adj = cv.threshold(blur, thresh,255,cv.THRESH_BINARY)
 
-    #dilate to close gaps and circles in landing pad
-    size_dilation = int(img_cols / 100)
-    dilation = cv.dilate(th_adj, np.ones((size_dilation,size_dilation),np.uint8), iterations=1)
+    # #dilate to close gaps and circles in landing pad
+    # size_dilation = int(img_cols / 100)
+    # dilation = cv.dilate(th_adj, np.ones((size_dilation,size_dilation),np.uint8), iterations=1)
 
     #erode to remove noise
     size_erode = int(img_cols / 30)
-    erosion = cv.erode(dilation, np.ones((size_erode,size_erode),np.uint8), iterations=1)
+    erosion = cv.erode(th_adj, np.ones((size_erode,size_erode),np.uint8), iterations=1)
 
     #dilate to restore size of landing pad
     size_dilation_2 = int(img_cols / 38)
@@ -117,7 +117,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size
     # Ratio of longest line length to the difference between the longest and shortest line length
     lineDiffRatio = (max_line_length - min_line_length) / max_line_length 
 
-    if lineDiffRatio > 0.2:
+    if lineDiffRatio > 0.25:
         print("lineDiffRatio: ", lineDiffRatio)
         return False # Line lengths are too different
     
@@ -174,7 +174,7 @@ def checkIfSquare(cnt, approx_poly, altitude, image_centerX, image_centerY, size
     area_box = cv.contourArea(box)
 
     areaRatio = area_cnt / area_box
-    if areaRatio < 0.8:
+    if areaRatio < 0.75:
         print("areaRatio: ", areaRatio)
         return False # Area of contour is too small compared to the bounding box
 
